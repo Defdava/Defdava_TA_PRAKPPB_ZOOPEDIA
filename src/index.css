@@ -1,0 +1,63 @@
+/* src/index.css → FINAL: MOBILE PERFECT + TAILWIND SETUP */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BASE STYLING */
+@layer base {
+  body {
+    @apply bg-cream text-dark-red font-sans;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* CUSTOM UTILITIES UNTUK ZOOPEDIA */
+@layer utilities {
+  /* Biar gak ada scroll horizontal */
+  html, body, #root {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Safe area untuk notch & home bar (iPhone, Android) */
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 1.5rem);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 5rem);
+  }
+
+  /* Tombol kembali aman dari notch */
+  .back-button {
+    top: max(1.5rem, env(safe-area-inset-top, 1.5rem));
+    left: max(1rem, env(safe-area-inset-left, 1rem));
+  }
+
+  /* Gambar detail hewan di HP */
+  @media (max-width: 768px) {
+    .detail-image-container {
+      padding-top: 6rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    .detail-image {
+      border-radius: 2rem;
+      border-width: 6px;
+    }
+    .detail-title {
+      font-size: 3rem !important;
+    }
+    .detail-latin {
+      font-size: 1.5rem !important;
+    }
+  }
+}
+
+/* ANIMASI HALUS */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
