@@ -1,4 +1,4 @@
-// src/App.jsx → FINAL TERAKHIR: PAKAI AUTH KAMU + REFRESH TETAP DI HALAMAN SAMA + VERCEL AMAN!
+// src/App.jsx → FINAL FIX: Splash muncul di localhost + production
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Auth from './lib/Auth'
@@ -18,40 +18,62 @@ import Profile from './pages/Profile'
 
 function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
+  const [afterRefresh, setAfterRefresh] = useState(false)
   const location = useLocation()
 
-  // Real-time update login status → Header & BottomNav langsung muncul/hilang!
+  // Real-time update auth
   useEffect(() => {
     const update = () => setIsAuth(Auth.isAuthenticated())
     Auth.subscribe(update)
     return () => Auth.unsubscribe(update)
   }, [])
 
-  // Simpan halaman terakhir setiap navigasi (kecuali login/register)
+  // Simpan halaman terakhir
   useEffect(() => {
     if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
       sessionStorage.setItem('lastPath', location.pathname + location.search)
     }
   }, [location, isAuth])
 
-  // Ambil halaman terakhir
   const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
+
+  // FIX: Splash muncul saat refresh (LOCALHOST + PRODUCTION)
+  useEffect(() => {
+    const firstLoad = !sessionStorage.getItem("forceSplash")
+
+    if (firstLoad) {
+      sessionStorage.setItem("forceSplash", "yes")
+      setAfterRefresh(true)
+    } else {
+      setAfterRefresh(false)
+      sessionStorage.removeItem("forceSplash")
+    }
+  }, [])
 
   return (
     <>
-      {/* HEADER & BOTTOMNAV HANYA MUNCUL KALAU SUDAH LOGIN */}
       {isAuth && <HeaderNav />}
 
       <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
         <Routes>
-          {/* Root → langsung ke splash atau halaman terakhir */}
-          <Route path="/" element={isAuth ? <Navigate to={lastPath} replace /> : <Splash />} />
 
-          {/* Login & Register */}
+          {/* ROOT → Splash muncul saat refresh */}
+          <Route
+            path="/"
+            element={
+              afterRefresh
+                ? <Splash />
+                : isAuth
+                  ? <Navigate to={lastPath} replace />
+                  : <Splash />
+            }
+          />
+
+          {/* Auth routes */}
           <Route path="/login" element={isAuth ? <Navigate to={lastPath} replace /> : <Login />} />
           <Route path="/register" element={isAuth ? <Navigate to={lastPath} replace /> : <Register />} />
 
-          {/* Halaman utama (harus login) */}
+          {/* Protected pages */}
           <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
           <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
           <Route path="/animals/:id" element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} />
@@ -59,11 +81,10 @@ function AppContent() {
           <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
 
-          {/* Fallback → arahin ke halaman terakhir atau splash */}
+          {/* Fallback */}
           <Route path="*" element={<Navigate to={isAuth ? lastPath : "/"} replace />} />
         </Routes>
 
-        {/* BOTTOMNAV HANYA MUNCUL KALAU SUDAH LOGIN */}
         {isAuth && <BottomNav />}
       </div>
     </>
