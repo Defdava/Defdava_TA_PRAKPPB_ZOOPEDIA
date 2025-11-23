@@ -1,4 +1,4 @@
-// src/App.jsx → FINAL TERAKHIR: SEMUA FITUR JALAN SEMPURNA!
+// src/App.jsx → FINAL: SPLASH + RESTORE HALAMAN SETIAP REFRESH!
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Auth from './lib/Auth'
@@ -21,18 +21,16 @@ function AppContent() {
   const [showSplash, setShowSplash] = useState(true)
   const location = useLocation()
 
-  // Simpan halaman terakhir sebelum refresh
+  // Simpan halaman terakhir setiap kali berubah
   useEffect(() => {
     if (isAuth) {
       sessionStorage.setItem('lastPath', location.pathname + location.search)
     }
   }, [location, isAuth])
 
-  // Splash muncul setiap refresh (3 detik)
+  // Splash 3 detik setiap refresh
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false)
-    }, 3000)
+    const timer = setTimeout(() => setShowSplash(false), 3000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -43,12 +41,8 @@ function AppContent() {
     return () => Auth.unsubscribe(update)
   }, [])
 
-  // Tampilkan splash dulu
-  if (showSplash) {
-    return <Splash />
-  }
+  if (showSplash) return <Splash />
 
-  // Ambil halaman terakhir setelah splash selesai
   const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
 
   return (
@@ -61,7 +55,6 @@ function AppContent() {
           <Route path="/login" element={isAuth ? <Navigate to={lastPath} replace /> : <Login />} />
           <Route path="/register" element={isAuth ? <Navigate to={lastPath} replace /> : <Register />} />
 
-          {/* Halaman yang butuh login */}
           <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
           <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
           <Route path="/animals/:id" element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} />
@@ -69,7 +62,6 @@ function AppContent() {
           <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
 
-          {/* Semua route yang gak ketemu → arahin ke halaman terakhir */}
           <Route path="*" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
         </Routes>
 

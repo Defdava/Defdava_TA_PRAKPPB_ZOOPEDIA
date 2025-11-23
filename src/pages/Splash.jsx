@@ -1,4 +1,4 @@
-// src/pages/Splash.jsx → FINAL: LANGSUNG KE HALAMAN TERAKHIR!
+// src/pages/Splash.jsx → FINAL: BALIK KE HALAMAN TERAKHIR!
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import Auth from "../lib/Auth"
