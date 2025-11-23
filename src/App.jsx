@@ -1,6 +1,6 @@
-// src/App.jsx → FINAL: SPLASH MUNCUL SETIAP REFRESH + RESTORE HALAMAN!
+// src/App.jsx → FITUR SHARE HEWAN LANGSUNG JALAN SETELAH LOGIN!
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
 import HeaderNav from './components/HeaderNav'
@@ -18,23 +18,26 @@ import Profile from './pages/Profile'
 
 function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
-  const [showSplash, setShowSplash] = useState(true) // ← SELALU TRUE = SPLASH MUNCUL DULU!
+  const [showSplash, setShowSplash] = useState(true)
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
-  // Simpan halaman terakhir setiap navigasi
+  // DETEKSI SHARE LINK DARI URL → ?share=animal-5
+  const sharedAnimalId = searchParams.get('share')?.replace('animal-', '')
+
+  // Simpan halaman terakhir + prioritas ke share link
   useEffect(() => {
     if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
-      sessionStorage.setItem('lastPath', location.pathname + location.search)
+      const path = location.pathname + location.search
+      sessionStorage.setItem('lastPath', path)
     }
   }, [location, isAuth])
 
-  // SPLASH SELALU MUNCUL 3 DETIK SETIAP REFRESH!
+  // Splash 3 detik setiap refresh
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false)
-    }, 3000)
+    const timer = setTimeout(() => setShowSplash(false), 3000)
     return () => clearTimeout(timer)
-  }, []) // ← KOSONG = JALAN SEKALI TIAP REFRESH!
+  }, [])
 
   // Update auth real-time
   useEffect(() => {
@@ -43,12 +46,18 @@ function AppContent() {
     return () => Auth.unsubscribe(update)
   }, [])
 
-  // TAMPILKAN SPLASH DULU SELALU!
-  if (showSplash) {
-    return <Splash />
+  if (showSplash) return <Splash />
+
+  // Tentukan tujuan akhir setelah login
+  const getRedirectPath = () => {
+    if (sharedAnimalId && !isNaN(sharedAnimalId)) {
+      return `/animals/${sharedAnimalId}`
+    }
+    const lastPath = sessionStorage.getItem('lastPath')
+    return lastPath && lastPath.includes('/animals/') ? lastPath : '/dashboard'
   }
 
-  const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
+  const redirectTo = getRedirectPath()
 
   return (
     <>
@@ -56,9 +65,10 @@ function AppContent() {
 
       <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
         <Routes>
-          <Route path="/" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
-          <Route path="/login" element={isAuth ? <Navigate to={lastPath} replace /> : <Login />} />
-          <Route path="/register" element={isAuth ? <Navigate to={lastPath} replace /> : <Register />} />
+          <Route path="/" element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} />
+          
+          <Route path="/login" element={isAuth ? <Navigate to={redirectTo} replace /> : <Login />} />
+          <Route path="/register" element={isAuth ? <Navigate to={redirectTo} replace /> : <Register />} />
 
           <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
           <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
@@ -67,7 +77,7 @@ function AppContent() {
           <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
 
-          <Route path="*" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
+          <Route path="*" element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} />
         </Routes>
 
         {isAuth && <BottomNav />}
