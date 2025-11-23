@@ -1,12 +1,22 @@
 {
   "name": "Zoopedia",
   "short_name": "Zoopedia",
+  "description": "Ensiklopedia Satwa Indonesia",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf9f6",
-  "theme_color": "#991b1b",
+  "background_color": "#faf6f0",
+  "theme_color": "#7f1d1d",
+  "orientation": "portrait-primary",
   "icons": [
-    { "src": "https://github.com/Defdava/Music/blob/main/logo.png?raw=true", "sizes": "192x192", "type": "image/svg+xml" },
-    { "src": "https://github.com/Defdava/Music/blob/main/logo.png?raw=true", "sizes": "512x512", "type": "image/svg+xml" }
+    {
+      "src": "https://github.com/Defdava/Music/blob/main/logo.png?raw=true",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://github.com/Defdava/Music/blob/main/logo.png?raw=true",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
