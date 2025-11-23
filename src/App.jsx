@@ -1,7 +1,7 @@
-// src/App.jsx → FINAL: PAKAI Auth.js KAMU + HEADER & BOTTOMNAV LANGSUNG MUNCUL!
+// src/App.jsx → FINAL: SPLASH + RESTORE HALAMAN SETELAH REFRESH!
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Auth from './lib/Auth'                    // ← INI FILE KAMU!
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
 import HeaderNav from './components/HeaderNav'
 
@@ -16,36 +16,51 @@ import Education from './pages/Education'
 import Favorites from './pages/Favorites'
 import Profile from './pages/Profile'
 
-export default function App() {
+function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
+  const [showSplash, setShowSplash] = useState(true)
+  const location = useLocation()
 
-  // DETEKSI LOGIN SECARA REAL-TIME → HEADER & BOTTOMNAV LANGSUNG MUNCUL!
+  // Simpan halaman terakhir sebelum refresh
   useEffect(() => {
-    const update = () => {
-      setIsAuth(Auth.isAuthenticated())
+    if (isAuth) {
+      sessionStorage.setItem('lastPath', location.pathname + location.search)
     }
+  }, [location, isAuth])
 
-    Auth.subscribe(update)
+  // Splash muncul setiap refresh
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false)
+    }, 3000)
 
-    return () => {
-      Auth.unsubscribe(update)
-    }
+    return () => clearTimeout(timer)
   }, [])
 
+  // Update auth real-time
+  useEffect(() => {
+    const update = () => setIsAuth(Auth.isAuthenticated())
+    Auth.subscribe(update)
+    return () => Auth.unsubscribe(update)
+  }, [])
+
+  if (showSplash) {
+    return <Splash />
+  }
+
+  // Ambil halaman terakhir setelah splash selesai
+  const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
+
   return (
-    <BrowserRouter>
-      {/* HEADER HANYA MUNCUL KALAU SUDAH LOGIN */}
+    <>
       {isAuth && <HeaderNav />}
 
-      <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-20' : ''}`}>
+      <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-24' : ''}`}>
         <Routes>
-          {/* Splash pertama kali */}
-          <Route path="/" element={isAuth ? <Navigate to="/dashboard" replace /> : <Splash />} />
+          <Route path="/" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
+          <Route path="/login" element={isAuth ? <Navigate to={lastPath} replace /> : <Login />} />
+          <Route path="/register" element={isAuth ? <Navigate to={lastPath} replace /> : <Register />} />
 
-          <Route path="/login" element={isAuth ? <Navigate to="/dashboard" replace /> : <Login />} />
-          <Route path="/register" element={isAuth ? <Navigate to="/dashboard" replace /> : <Register />} />
-
-          {/* Halaman yang butuh login */}
           <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
           <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
           <Route path="/animals/:id" element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} />
@@ -53,12 +68,19 @@ export default function App() {
           <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
 
-          <Route path="*" element={<Navigate to={isAuth ? "/dashboard" : "/"} replace />} />
+          <Route path="*" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
         </Routes>
 
-        {/* BOTTOMNAV HANYA MUNCUL KALAU SUDAH LOGIN */}
         {isAuth && <BottomNav />}
       </div>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   )
 }

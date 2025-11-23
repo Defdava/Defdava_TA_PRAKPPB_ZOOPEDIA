@@ -5,7 +5,7 @@ export default function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-dark-red text-cream border-t-4 border-mid-red z-50">
       <div className="flex justify-around py-3">
-        <NavLink to="/" className={({isActive}) => `p-2 ${isActive ? 'text-cream' : 'text-light-beige'}`}>
+        <NavLink to="/dashboard" className={({isActive}) => `p-2 ${isActive ? 'text-cream' : 'text-light-beige'}`}>
           <Home size={28} />
         </NavLink>
         <NavLink to="/animals" className={({isActive}) => `p-2 ${isActive ? 'text-cream' : 'text-light-beige'}`}>
