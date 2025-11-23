@@ -1,7 +1,7 @@
-// src/App.jsx → FINAL: PAKAI Auth.js KAMU + HEADER & BOTTOMNAV LANGSUNG MUNCUL!
+// src/App.jsx → FINAL TERAKHIR: PAKAI AUTH KAMU + REFRESH TETAP DI HALAMAN SAMA + VERCEL AMAN!
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Auth from './lib/Auth'                    // ← INI FILE KAMU!
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
 import HeaderNav from './components/HeaderNav'
 
@@ -16,36 +16,42 @@ import Education from './pages/Education'
 import Favorites from './pages/Favorites'
 import Profile from './pages/Profile'
 
-export default function App() {
+function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
+  const location = useLocation()
 
-  // DETEKSI LOGIN SECARA REAL-TIME → HEADER & BOTTOMNAV LANGSUNG MUNCUL!
+  // Real-time update login status → Header & BottomNav langsung muncul/hilang!
   useEffect(() => {
-    const update = () => {
-      setIsAuth(Auth.isAuthenticated())
-    }
-
+    const update = () => setIsAuth(Auth.isAuthenticated())
     Auth.subscribe(update)
-
-    return () => {
-      Auth.unsubscribe(update)
-    }
+    return () => Auth.unsubscribe(update)
   }, [])
 
+  // Simpan halaman terakhir setiap navigasi (kecuali login/register)
+  useEffect(() => {
+    if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
+      sessionStorage.setItem('lastPath', location.pathname + location.search)
+    }
+  }, [location, isAuth])
+
+  // Ambil halaman terakhir
+  const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
+
   return (
-    <BrowserRouter>
-      {/* HEADER HANYA MUNCUL KALAU SUDAH LOGIN */}
+    <>
+      {/* HEADER & BOTTOMNAV HANYA MUNCUL KALAU SUDAH LOGIN */}
       {isAuth && <HeaderNav />}
 
-      <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-20' : ''}`}>
+      <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
         <Routes>
-          {/* Splash pertama kali */}
-          <Route path="/" element={isAuth ? <Navigate to="/dashboard" replace /> : <Splash />} />
+          {/* Root → langsung ke splash atau halaman terakhir */}
+          <Route path="/" element={isAuth ? <Navigate to={lastPath} replace /> : <Splash />} />
 
-          <Route path="/login" element={isAuth ? <Navigate to="/dashboard" replace /> : <Login />} />
-          <Route path="/register" element={isAuth ? <Navigate to="/dashboard" replace /> : <Register />} />
+          {/* Login & Register */}
+          <Route path="/login" element={isAuth ? <Navigate to={lastPath} replace /> : <Login />} />
+          <Route path="/register" element={isAuth ? <Navigate to={lastPath} replace /> : <Register />} />
 
-          {/* Halaman yang butuh login */}
+          {/* Halaman utama (harus login) */}
           <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
           <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
           <Route path="/animals/:id" element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} />
@@ -53,12 +59,21 @@ export default function App() {
           <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
 
-          <Route path="*" element={<Navigate to={isAuth ? "/dashboard" : "/"} replace />} />
+          {/* Fallback → arahin ke halaman terakhir atau splash */}
+          <Route path="*" element={<Navigate to={isAuth ? lastPath : "/"} replace />} />
         </Routes>
 
         {/* BOTTOMNAV HANYA MUNCUL KALAU SUDAH LOGIN */}
         {isAuth && <BottomNav />}
       </div>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   )
 }
