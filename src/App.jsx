@@ -1,4 +1,4 @@
-// src/App.jsx → FINAL FIX: Splash muncul di localhost + production
+// src/App.jsx → FINAL: SPLASH MUNCUL SETIAP REFRESH + RESTORE HALAMAN!
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Auth from './lib/Auth'
@@ -18,37 +18,37 @@ import Profile from './pages/Profile'
 
 function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
-  const [afterRefresh, setAfterRefresh] = useState(false)
+  const [showSplash, setShowSplash] = useState(true) // ← SELALU TRUE = SPLASH MUNCUL DULU!
   const location = useLocation()
 
-  // Real-time update auth
-  useEffect(() => {
-    const update = () => setIsAuth(Auth.isAuthenticated())
-    Auth.subscribe(update)
-    return () => Auth.unsubscribe(update)
-  }, [])
-
-  // Simpan halaman terakhir
+  // Simpan halaman terakhir setiap navigasi
   useEffect(() => {
     if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
       sessionStorage.setItem('lastPath', location.pathname + location.search)
     }
   }, [location, isAuth])
 
-  const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
-
-  // FIX: Splash muncul saat refresh (LOCALHOST + PRODUCTION)
+  // SPLASH SELALU MUNCUL 3 DETIK SETIAP REFRESH!
   useEffect(() => {
-    const firstLoad = !sessionStorage.getItem("forceSplash")
+    const timer = setTimeout(() => {
+      setShowSplash(false)
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, []) // ← KOSONG = JALAN SEKALI TIAP REFRESH!
 
-    if (firstLoad) {
-      sessionStorage.setItem("forceSplash", "yes")
-      setAfterRefresh(true)
-    } else {
-      setAfterRefresh(false)
-      sessionStorage.removeItem("forceSplash")
-    }
+  // Update auth real-time
+  useEffect(() => {
+    const update = () => setIsAuth(Auth.isAuthenticated())
+    Auth.subscribe(update)
+    return () => Auth.unsubscribe(update)
   }, [])
+
+  // TAMPILKAN SPLASH DULU SELALU!
+  if (showSplash) {
+    return <Splash />
+  }
+
+  const lastPath = sessionStorage.getItem('lastPath') || '/dashboard'
 
   return (
     <>
@@ -56,24 +56,10 @@ function AppContent() {
 
       <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
         <Routes>
-
-          {/* ROOT → Splash muncul saat refresh */}
-          <Route
-            path="/"
-            element={
-              afterRefresh
-                ? <Splash />
-                : isAuth
-                  ? <Navigate to={lastPath} replace />
-                  : <Splash />
-            }
-          />
-
-          {/* Auth routes */}
+          <Route path="/" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
           <Route path="/login" element={isAuth ? <Navigate to={lastPath} replace /> : <Login />} />
           <Route path="/register" element={isAuth ? <Navigate to={lastPath} replace /> : <Register />} />
 
-          {/* Protected pages */}
           <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
           <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
           <Route path="/animals/:id" element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} />
@@ -81,8 +67,7 @@ function AppContent() {
           <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to={isAuth ? lastPath : "/"} replace />} />
+          <Route path="*" element={<Navigate to={isAuth ? lastPath : "/login"} replace />} />
         </Routes>
 
         {isAuth && <BottomNav />}
