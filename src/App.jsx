@@ -1,6 +1,13 @@
-// src/App.jsx → FITUR SHARE HEWAN LANGSUNG JALAN SETELAH LOGIN!
+// src/App.jsx
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { 
+  BrowserRouter, 
+  Routes, 
+  Route, 
+  Navigate, 
+  useLocation, 
+  useSearchParams 
+} from 'react-router-dom'
 import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
 import HeaderNav from './components/HeaderNav'
@@ -22,10 +29,10 @@ function AppContent() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
 
-  // DETEKSI SHARE LINK DARI URL → ?share=animal-5
+  // Deteksi share link: ?share=animal-123
   const sharedAnimalId = searchParams.get('share')?.replace('animal-', '')
 
-  // Simpan halaman terakhir + prioritas ke share link
+  // Simpan halaman terakhir sebelum logout/login
   useEffect(() => {
     if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
       const path = location.pathname + location.search
@@ -33,13 +40,13 @@ function AppContent() {
     }
   }, [location, isAuth])
 
-  // Splash 3 detik setiap refresh
+  // Splash screen 3 detik
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000)
     return () => clearTimeout(timer)
   }, [])
 
-  // Update auth real-time
+  // Update status login secara real-time
   useEffect(() => {
     const update = () => setIsAuth(Auth.isAuthenticated())
     Auth.subscribe(update)
@@ -48,13 +55,14 @@ function AppContent() {
 
   if (showSplash) return <Splash />
 
-  // Tentukan tujuan akhir setelah login
+  // Tentukan halaman tujuan setelah login
   const getRedirectPath = () => {
     if (sharedAnimalId && !isNaN(sharedAnimalId)) {
       return `/animals/${sharedAnimalId}`
     }
     const lastPath = sessionStorage.getItem('lastPath')
-    return lastPath && lastPath.includes('/animals/') ? lastPath : '/dashboard'
+    if (lastPath && lastPath.startsWith('/animals/')) return lastPath
+    return '/dashboard'
   }
 
   const redirectTo = getRedirectPath()
@@ -65,19 +73,53 @@ function AppContent() {
 
       <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
         <Routes>
-          <Route path="/" element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} />
-          
-          <Route path="/login" element={isAuth ? <Navigate to={redirectTo} replace /> : <Login />} />
-          <Route path="/register" element={isAuth ? <Navigate to={redirectTo} replace /> : <Register />} />
+          {/* Root */}
+          <Route 
+            path="/" 
+            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} 
+          />
 
-          <Route path="/dashboard" element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} />
-          <Route path="/animals" element={isAuth ? <Animals /> : <Navigate to="/login" replace />} />
-          <Route path="/animals/:id" element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} />
-          <Route path="/education" element={isAuth ? <Education /> : <Navigate to="/login" replace />} />
-          <Route path="/favorites" element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} />
-          <Route path="/profile" element={isAuth ? <Profile /> : <Navigate to="/login" replace />} />
+          {/* Auth Pages */}
+          <Route 
+            path="/login" 
+            element={isAuth ? <Navigate to={redirectTo} replace /> : <Login />} 
+          />
+          <Route 
+            path="/register" 
+            element={isAuth ? <Navigate to={redirectTo} replace /> : <Register />} 
+          />
 
-          <Route path="*" element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} />
+          {/* Protected Pages */}
+          <Route 
+            path="/dashboard" 
+            element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/animals" 
+            element={isAuth ? <Animals /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/animals/:id" 
+            element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/education" 
+            element={isAuth ? <Education /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/favorites" 
+            element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/profile" 
+            element={isAuth ? <Profile /> : <Navigate to="/login" replace />} 
+          />
+
+          {/* 404 / Fallback */}
+          <Route 
+            path="*" 
+            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} 
+          />
         </Routes>
 
         {isAuth && <BottomNav />}
