@@ -1,6 +1,7 @@
-// src/pages/Profile.jsx → FINAL: BISA GANTI FOTO PROFIL + LIVE CAMERA!
+// src/pages/Profile.jsx
 import { useState, useRef, useEffect } from 'react'
-import { Camera, Upload, X, User } from 'lucide-react'
+import { Camera, Upload, X, User, Star } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Auth from '../lib/Auth'
 
 export default function Profile() {
@@ -18,6 +19,13 @@ export default function Profile() {
   useEffect(() => {
     if (user.photo) setPhoto(user.photo)
   }, [user.photo])
+
+  // Cari ulasan dari user ini
+  const allReviews = JSON.parse(localStorage.getItem('websiteReviews') || '[]')
+  const userReview = allReviews.find(r => 
+    (user.id && r.userId === user.id) || 
+    (!user.id && r.userId === user.email)
+  )
 
   // Buka galeri
   const handleUploadClick = () => {
@@ -168,6 +176,43 @@ export default function Profile() {
           >
             Keluar Akun
           </button>
+        </div>
+
+        {/* Ulasan yang pernah dibuat user */}
+        <div className="mt-12 bg-white rounded-3xl shadow-2xl p-8">
+          <h3 className="text-2xl font-black text-dark-red mb-6">Ulasanmu untuk Zoopedia</h3>
+          
+          {userReview ? (
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-8 border-4 border-purple-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map((s) => (
+                    <Star key={s} size={28} className={s <= userReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} />
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-gray-600">• {userReview.date}</span>
+              </div>
+              <p className="text-xl text-gray-800 italic leading-relaxed">"{userReview.review}"</p>
+              <Link
+                to="/review"
+                className="mt-6 inline-block text-dark-red font-bold text-lg hover:underline"
+              >
+                Edit Ulasan →
+              </Link>
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <Star size={64} className="mx-auto text-gray-300 mb-6" />
+              <p className="text-xl text-gray-600 mb-6">Kamu belum memberikan ulasan untuk Zoopedia</p>
+              <Link
+                to="/review"
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-5 rounded-2xl font-bold text-xl shadow-xl hover:scale-105 transition-all"
+              >
+                <Star size={32} className="fill-yellow-300 text-yellow-300" />
+                Tulis Ulasan Sekarang
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

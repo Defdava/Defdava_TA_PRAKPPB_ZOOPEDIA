@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Cat, AlertTriangle } from 'lucide-react'
+import { Cat, AlertTriangle, Trophy, Star, User } from 'lucide-react'
 import { getAllAnimals } from '../services/api'
 
 export default function Dashboard() {
@@ -9,7 +9,6 @@ export default function Dashboard() {
   const [allAnimals, setAllAnimals] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Hewan yang dapat label khusus
   const extinctLabels = {
     "Badak Bercula Satu": { label: "PUNAH DI ALAM LIAR", color: "bg-red-600" },
     "Harimau Sumatera": { label: "KRITIS TERANCAM", color: "bg-red-700" },
@@ -17,23 +16,23 @@ export default function Dashboard() {
     "Elang Jawa": { label: "KRITIS TERANCAM", color: "bg-orange-600" }
   }
 
-  // Ambil semua hewan sekali
+  // Ambil ulasan dari localStorage
+  const reviews = JSON.parse(localStorage.getItem('websiteReviews') || '[]')
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+
   useEffect(() => {
     getAllAnimals().then(data => {
       setAllAnimals(data)
       setLoading(false)
-      // Mulai langsung tampilkan 5 pertama
       rotateAnimals(data)
     })
   }, [])
 
-  // Fungsi untuk ambil 5 hewan acak
   const getRandomFive = (animals) => {
     const shuffled = [...animals].sort(() => 0.5 - Math.random())
     return shuffled.slice(0, 5)
   }
 
-  // Ganti 5 hewan setiap 5 detik
   const rotateAnimals = (animals) => {
     setRandomAnimals(getRandomFive(animals))
   }
@@ -43,7 +42,7 @@ export default function Dashboard() {
 
     const interval = setInterval(() => {
       rotateAnimals(allAnimals)
-    }, 5000) // Ganti setiap 5 detik
+    }, 5000)
 
     return () => clearInterval(interval)
   }, [allAnimals])
@@ -71,7 +70,29 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Featured Animals - Berganti Otomatis */}
+      {/* Tombol Kuis */}
+      <div className="my-12 text-center">
+        <Link
+          to="/quiz"
+          className="inline-flex items-center gap-3 bg-dark-red text-white px-8 py-5 rounded-2xl font-bold text-xl shadow-lg hover:bg-red-700 transition-transform hover:scale-105"
+        >
+          <Trophy size={32} />
+          Mulai Kuis Pengetahuan Hewan
+        </Link>
+      </div>
+
+      {/* Tombol Beri Ulasan */}
+      <div className="my-12 text-center">
+        <Link
+          to="/review"
+          className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-5 rounded-2xl font-bold text-xl shadow-lg hover:scale-105 transition-all"
+        >
+          <Star size={32} className="fill-yellow-300 text-yellow-300" />
+          Beri Ulasan untuk Zoopedia
+        </Link>
+      </div>
+
+      {/* Featured Animals */}
       <div className="mt-12">
         <div className="flex items-center gap-3 mb-6">
           <AlertTriangle className="text-red-600" size={32} />
@@ -98,7 +119,6 @@ export default function Dashboard() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
 
-                  {/* Label Khusus */}
                   {labelInfo && (
                     <div className={`absolute top-3 right-3 ${labelInfo.color} text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg`}>
                       <AlertTriangle size={14} />
@@ -126,6 +146,48 @@ export default function Dashboard() {
           <p className="text-sm text-gray-600">
             Menampilkan hewan secara acak • Refresh halaman untuk melihat yang lain
           </p>
+        </div>
+      </div>
+
+      {/* Daftar Ulasan Pengguna */}
+      <div className="mt-20">
+        <h2 className="text-3xl font-black text-dark-red text-center mb-10">
+          Apa Kata Pengunjung Lain?
+        </h2>
+
+        <div className="max-w-5xl mx-auto space-y-8">
+          {reviews.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl shadow-2xl">
+              <Star size={64} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-2xl text-gray-600">Belum ada ulasan. Jadilah yang pertama!</p>
+            </div>
+          ) : (
+            reviews.slice(0, 8).map((r) => (
+              <div key={r.id} className="bg-white rounded-3xl shadow-2xl p-8 flex gap-6 hover:shadow-3xl transition-all">
+                <div className="flex-shrink-0">
+                  {r.userPhoto ? (
+                    <img src={r.userPhoto} alt={r.userName} className="w-20 h-20 rounded-full object-cover border-4 border-dark-red" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center">
+                      <User size={40} className="text-cream" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-3 mb-3">
+                    <h4 className="text-xl font-bold text-dark-red">{r.userName}</h4>
+                    <span className="text-sm text-gray-500">• {r.date}</span>
+                  </div>
+                  <div className="flex gap-1 mb-4">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} size={22} className={s <= r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} />
+                    ))}
+                  </div>
+                  <p className="text-lg text-gray-800 leading-relaxed italic">"{r.review}"</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

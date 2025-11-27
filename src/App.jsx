@@ -22,6 +22,8 @@ import DetailAnimal from './pages/DetailAnimal'
 import Education from './pages/Education'
 import Favorites from './pages/Favorites'
 import Profile from './pages/Profile'
+import Quiz from './pages/Quiz'
+import ReviewPage from './pages/ReviewPage'  // ← BARU
 
 function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
@@ -113,6 +115,16 @@ function AppContent() {
           <Route 
             path="/profile" 
             element={isAuth ? <Profile /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/quiz" 
+            element={isAuth ? <Quiz /> : <Navigate to="/login" replace />} 
+          />
+
+          {/* NEW: Halaman Review */}
+          <Route 
+            path="/review" 
+            element={isAuth ? <ReviewPage /> : <Navigate to="/login" replace />} 
           />
 
           {/* 404 / Fallback */}
