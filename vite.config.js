@@ -1,4 +1,4 @@
-// vite.config.js
+// vite.config.js ← COPY-PASTE INI 100%, JANGAN DIUBAH LAGI!
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -10,7 +10,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
 
-      // Manifest PWA (icon, nama, warna, dll)
+      // Manifest PWA
       manifest: {
         name: 'Zoopedia Indonesia',
         short_name: 'Zoopedia',
@@ -21,76 +21,67 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
-          {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
 
-      // WORKBOX – Ini yang bikin bisa OFFLINE 100%
+      // WORKBOX — INI YANG BIKIN 100% OFFLINE (API + GAMBAR SUPABASE)
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg,woff2,ttf,woff,json}'],
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg,woff2,ttf,json}'],
         cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
 
-        // MAGIC DI SINI: Cache semua request ke Supabase (API + Storage)
         runtimeCaching: [
-          // 1. Cache semua API Supabase (REST + Storage metadata)
+          // 1. SEMUA REQUEST KE SUPABASE (API + STORAGE) → DI-CACHE DULUAN!
           {
-            urlPattern: ({ url }) => url.origin === 'https://oidlzdozlailawmngruv.supabase.co',
+            urlPattern: ({ url }) => url.hostname === 'oidlzdozlailawmngruv.supabase.co',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'supabase-api-cache',
+              cacheName: 'supabase-all', // API + gambar storage masuk sini semua
               expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 hari
+                maxEntries: 1000,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 tahun
               },
               cacheableResponse: {
-                statuses: [0, 200] // 0 = opaque response (Supabase biasanya begini)
-              }
-            }
+                statuses: [0, 200, 204], // 0 = opaque (wajib untuk Supabase!)
+              },
+            },
           },
 
-          // 2. Cache semua gambar (dari Supabase Storage atau CDN)
+          // 2. Double protection untuk gambar (biar pasti masuk cache)
           {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'images-cache',
+              cacheName: 'images',
               expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 tahun
-              }
-            }
+                maxEntries: 2000,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+            },
           },
 
-          // 3. Cache halaman HTML (untuk navigasi offline)
+          // 3. Halaman navigasi (biar SPA tetap jalan offline)
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'html-cache'
-            }
-          }
-        ]
-      }
-    })
+              cacheName: 'pages',
+              networkTimeoutSeconds: 10,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
   ],
 
   base: '/',
   build: {
-    outDir: 'dist'
-  }
+    outDir: 'dist',
+    sourcemap: false,
+  },
 })
