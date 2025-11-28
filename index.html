@@ -1,14 +1,31 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="https://github.com/Defdava/Music/blob/main/logo.png?raw=true" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zoopedia</title>
-  <link rel="manifest" href="/manifest.json" />
-</head>
-<body class="bg-cream min-h-screen">
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon & Title -->
+    <link rel="icon" type="image/png" href="/pwa-192x192.png" />
+    <title>Zoopedia Indonesia</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#dc2626" />
+    <meta name="description" content="Edukasi & Konservasi Satwa Liar Indonesia" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Zoopedia" />
+
+    <!-- Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+
+    <!-- Font (optional, kalau pakai Google Fonts) -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet"> -->
+  </head>
+
+  <body class="bg-cream min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
