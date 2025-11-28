@@ -31,7 +31,7 @@ export default function Quiz() {
 
         return {
           animal,
-          question: `Hewan apa yang tertera pada gambar? "${animal.nama_latin}"?`,
+          question: `Hewan apa yang tertera pada gambar? "${animal.nama_latin}`,
           options,
           correct: animal.nama
         }
