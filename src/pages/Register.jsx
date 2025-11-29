@@ -1,4 +1,4 @@
-// src/pages/Register.jsx → FINAL MULTI USER!
+// src/pages/Register.jsx → FINAL DENGAN ROLE ADMIN
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Auth from '../lib/Auth'
@@ -26,35 +26,36 @@ export default function Register() {
     if (form.password !== form.confirm) return alert('Password tidak sama!')
     if (form.password.length < 6) return alert('Password minimal 6 karakter!')
 
-    // Ambil semua akun yang sudah ada
     const allAccounts = JSON.parse(localStorage.getItem('zoopedia_accounts') || '[]')
 
-    // Cek email sudah ada belum
     if (allAccounts.some(acc => acc.email === email)) {
       return alert('Email ini sudah terdaftar! Silakan login.')
     }
 
-    // Buat akun baru
+    // ADMIN: hanya email ini yang jadi admin (ganti sesuka hati)
+    const adminEmails = ['admin@zoopedia.com', 'admin@gmail.com', 'superadmin@zoopedia.app']
+    const role = adminEmails.includes(email) ? 'admin' : 'user'
+
     const newAccount = {
       name,
       email,
       password: form.password,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+      role
     }
 
-    // Simpan ke array
     allAccounts.push(newAccount)
     localStorage.setItem('zoopedia_accounts', JSON.stringify(allAccounts))
 
-    // Login otomatis
     Auth.login({
       name,
       email,
       avatar: newAccount.avatar,
-      photo: null
+      photo: null,
+      role
     })
 
-    alert(`Selamat datang, ${name}! Akun berhasil dibuat!`)
+    alert(`Selamat datang, ${name}! ${role === 'admin' ? '(Admin Mode)' : ''}`)
     navigate('/dashboard', { replace: true })
   }
 
@@ -72,53 +73,18 @@ export default function Register() {
         <p className="text-center text-beige text-lg mb-8">Gabung jadi pecinta satwa Indonesia!</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            type="text"
-            placeholder="Nama Lengkap"
-            className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner"
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner"
-            value={form.email}
-            onChange={e => setForm({ ...form, email: e.target.value })}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password (min. 6 karakter)"
-            className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner"
-            value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })}
-            required
-            minLength={6}
-          />
-          <input
-            type="password"
-            placeholder="Konfirmasi Password"
-            className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner"
-            value={form.confirm}
-            onChange={e => setForm({ ...form, confirm: e.target.value })}
-            required
-          />
+          <input type="text" placeholder="Nama Lengkap" className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+          <input type="email" placeholder="Email" className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+          <input type="password" placeholder="Password (min. 6 karakter)" className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={6} />
+          <input type="password" placeholder="Konfirmasi Password" className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner" value={form.confirm} onChange={e => setForm({ ...form, confirm: e.target.value })} required />
 
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 text-cream font-black py-6 rounded-xl text-xl shadow-2xl hover:scale-105 transition-all"
-          >
+          <button type="submit" className="w-full bg-gradient-to-r from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 text-cream font-black py-6 rounded-xl text-xl shadow-2xl hover:scale-105 transition-all">
             Daftar & Masuk Sekarang!
           </button>
         </form>
 
         <p className="text-center mt-8 text-beige font-medium">
-          Sudah punya akun?{' '}
-          <Link to="/login" className="text-dark-red font-black underline hover:text-red-800">
-            Login di sini
-          </Link>
+          Sudah punya akun? <Link to="/login" className="text-dark-red font-black underline hover:text-red-800">Login di sini</Link>
         </p>
       </div>
     </div>

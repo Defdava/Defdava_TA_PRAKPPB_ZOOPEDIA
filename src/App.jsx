@@ -1,12 +1,12 @@
-// src/App.jsx
+// src/App.jsx → FINAL VERSION DENGAN ROLE ADMIN + UPLOAD HEWAN
 import { useState, useEffect } from 'react'
-import { 
-  BrowserRouter, 
-  Routes, 
-  Route, 
-  Navigate, 
-  useLocation, 
-  useSearchParams 
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useSearchParams
 } from 'react-router-dom'
 import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
@@ -23,7 +23,10 @@ import Education from './pages/Education'
 import Favorites from './pages/Favorites'
 import Profile from './pages/Profile'
 import Quiz from './pages/Quiz'
-import ReviewPage from './pages/ReviewPage'  // ← BARU
+import ReviewPage from './pages/ReviewPage'
+
+// ADMIN PAGE
+import UploadAnimal from './pages/UploadAnimal'
 
 function AppContent() {
   const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
@@ -34,7 +37,7 @@ function AppContent() {
   // Deteksi share link: ?share=animal-123
   const sharedAnimalId = searchParams.get('share')?.replace('animal-', '')
 
-  // Simpan halaman terakhir sebelum logout/login
+  // Simpan halaman terakhir sebelum logout
   useEffect(() => {
     if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
       const path = location.pathname + location.search
@@ -76,61 +79,71 @@ function AppContent() {
       <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
         <Routes>
           {/* Root */}
-          <Route 
-            path="/" 
-            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} 
+          <Route
+            path="/"
+            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />}
           />
 
           {/* Auth Pages */}
-          <Route 
-            path="/login" 
-            element={isAuth ? <Navigate to={redirectTo} replace /> : <Login />} 
+          <Route
+            path="/login"
+            element={isAuth ? <Navigate to={redirectTo} replace /> : <Login />}
           />
-          <Route 
-            path="/register" 
-            element={isAuth ? <Navigate to={redirectTo} replace /> : <Register />} 
-          />
-
-          {/* Protected Pages */}
-          <Route 
-            path="/dashboard" 
-            element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/animals" 
-            element={isAuth ? <Animals /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/animals/:id" 
-            element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/education" 
-            element={isAuth ? <Education /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/favorites" 
-            element={isAuth ? <Favorites /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/profile" 
-            element={isAuth ? <Profile /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/quiz" 
-            element={isAuth ? <Quiz /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/register"
+            element={isAuth ? <Navigate to={redirectTo} replace /> : <Register />}
           />
 
-          {/* NEW: Halaman Review */}
-          <Route 
-            path="/review" 
-            element={isAuth ? <ReviewPage /> : <Navigate to="/login" replace />} 
+          {/* Protected Pages (User & Admin) */}
+          <Route
+            path="/dashboard"
+            element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/animals"
+            element={isAuth ? <Animals /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/animals/:id"
+            element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/education"
+            element={isAuth ? <Education /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/favorites"
+            element={isAuth ? <Favorites /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/profile"
+            element={isAuth ? <Profile /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/quiz"
+            element={isAuth ? <Quiz /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/review"
+            element={isAuth ? <ReviewPage /> : <Navigate to="/login" replace />}
+          />
+
+          {/* ADMIN ONLY: Upload Hewan */}
+          <Route
+            path="/admin/upload"
+            element={
+              isAuth && Auth.isAdmin() ? (
+                <UploadAnimal />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
           />
 
           {/* 404 / Fallback */}
-          <Route 
-            path="*" 
-            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />} 
+          <Route
+            path="*"
+            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />}
           />
         </Routes>
 
