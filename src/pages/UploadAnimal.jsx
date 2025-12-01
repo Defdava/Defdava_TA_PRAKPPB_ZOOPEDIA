@@ -29,7 +29,7 @@ export default function UploadAnimal() {
     condition: 'LC'
   })
 
-  // Akses admin
+  // Hanya admin
   if (!Auth.isAdmin()) {
     return (
       <div className="min-h-screen bg-cream pt-24 pb-32 px-6 flex items-center justify-center">
@@ -37,7 +37,10 @@ export default function UploadAnimal() {
           <AlertCircle size={80} className="mx-auto mb-6 text-red-500" />
           <h1 className="text-4xl font-black text-dark-red mb-4">Akses Ditolak</h1>
           <p className="text-lg text-gray-700 mb-8">Hanya Admin yang bisa mengunggah hewan baru</p>
-          <button onClick={() => navigate('/dashboard')} className="bg-dark-red text-cream font-black px-10 py-4 rounded-xl hover:scale-105 transition-all shadow-xl">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-dark-red text-cream font-black px-10 py-4 rounded-xl hover:scale-105 transition-all shadow-xl"
+          >
             Kembali ke Dashboard
           </button>
         </div>
@@ -190,6 +193,7 @@ export default function UploadAnimal() {
               <button
                 type="submit"
                 disabled={loading}
+                onClick={handleSubmit}
                 className="w-full bg-gradient-to-r from-emerald-600 to-green-700 text-cream font-black py-6 rounded-2xl text-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-60 flex items-center justify-center gap-4"
               >
                 {loading ? (

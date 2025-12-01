@@ -1,11 +1,11 @@
-// src/services/api.js → SUPER OPTIMIZED FOR VERCEL
+// src/services/api.js → FINAL (Sesuai Struktur Tabel Supabase + Aman di Vercel)
 import { supabase } from '../lib/supabaseClient'
 
-// Mapping data
+// Mapping agar nama tetap konsisten di frontend
 const mapHewan = (item) => ({
   id: item.id,
   nama: item.name,
-  nama_latin: null,
+  nama_latin: null, // Tidak ada di DB → null
   gambar: item.image_url || "https://via.placeholder.com/800x600/8b4513/fff?text=Tanpa+Gambar",
   habitat: item.origin || "Tidak diketahui",
   deskripsi_singkat: item.short_description || "",
@@ -14,38 +14,48 @@ const mapHewan = (item) => ({
   created_at: item.created_at
 })
 
-/* ============================================
-   GET ALL
-============================================ */
+/* ========================================================
+   GET ALL ANIMALS
+======================================================== */
 export const getAllAnimals = async () => {
   const { data, error } = await supabase
     .from('hewan')
     .select('*')
     .order('name', { ascending: true })
 
-  if (error) return []
+  if (error) {
+    console.error('Error getAllAnimals:', error)
+    return []
+  }
 
-  return data.map(mapHewan)
+  return (data || []).map(mapHewan)
 }
 
-/* ============================================
-   GET BY ID
-============================================ */
+/* ========================================================
+   GET ANIMAL BY ID
+======================================================== */
 export const getAnimalById = async (id) => {
   const { data, error } = await supabase
     .from('hewan')
     .select('*')
     .eq('id', id)
-    .maybeSingle()
+    .maybeSingle() // lebih aman daripada single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error getAnimalById:', error)
+    throw error
+  }
+
+  if (!data) {
+    throw new Error('Hewan tidak ditemukan')
+  }
 
   return mapHewan(data)
 }
 
-/* ============================================
-   SUPER FAST INSERT
-============================================ */
+/* ========================================================
+   CREATE ANIMAL
+======================================================== */
 export const createAnimal = async (formData) => {
   const payload = {
     name: formData.name,
@@ -56,24 +66,26 @@ export const createAnimal = async (formData) => {
     image_url: formData.image_url
   }
 
-  // FASTEST WAY — only return id
   const { data, error } = await supabase
     .from('hewan')
     .insert(payload)
-    .select('id')
-    .maybeSingle()
+    .select('*')
+    .maybeSingle() // aman di Vercel / RLS
 
-  if (error) throw error
+  if (error) {
+    console.error('Gagal upload hewan:', error)
+    throw error
+  }
 
-  // Emit refresh event ASAP
+  // Trigger refresh list hewan
   window.dispatchEvent(new Event('animal-updated'))
 
-  return data?.id
+  return mapHewan(data)
 }
 
-/* ============================================
-   SUPER FAST UPDATE
-============================================ */
+/* ========================================================
+   UPDATE ANIMAL
+======================================================== */
 export const updateAnimal = async (id, updates) => {
   const payload = {
     name: updates.nama,
@@ -88,28 +100,33 @@ export const updateAnimal = async (id, updates) => {
     .from('hewan')
     .update(payload)
     .eq('id', id)
-    .select('id')
+    .select('*')
     .maybeSingle()
 
-  if (error) throw error
+  if (error) {
+    console.error('Gagal update hewan:', error)
+    throw error
+  }
 
   window.dispatchEvent(new Event('animal-updated'))
 
-  return data?.id
+  return mapHewan(data)
 }
 
-/* ============================================
-   FAST DELETE
-============================================ */
+/* ========================================================
+   DELETE ANIMAL (HARD DELETE)
+======================================================== */
 export const deleteAnimal = async (id) => {
   const { error } = await supabase
     .from('hewan')
     .delete()
     .eq('id', id)
 
-  if (error) throw error
+  if (error) {
+    console.error('Gagal hapus hewan:', error)
+    throw error
+  }
 
   window.dispatchEvent(new Event('animal-updated'))
-
   return true
 }
