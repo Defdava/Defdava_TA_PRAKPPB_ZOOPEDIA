@@ -1,4 +1,4 @@
-// src/pages/Animals.jsx → FINAL: PAGINATION 6 HEWAN PER HALAMAN + SUPER KEREN!
+// src/pages/Animals.jsx → FINAL: AUTO-REFRESH SETELAH UPLOAD & EDIT
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, Search, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -14,16 +14,28 @@ export default function Animals() {
   const [currentPage, setCurrentPage] = useState(1)
   const [favorites, setFavorites] = useState({})
 
+  // 🔥 Fungsi muat ulang data
+  const loadAnimals = async () => {
+    setLoading(true)
+    const data = await getAllAnimals()
+    setAnimals(data || [])
+    setLoading(false)
+  }
+
+  // 🔥 Load pertama kali
   useEffect(() => {
-    const load = async () => {
-      const data = await getAllAnimals()
-      setAnimals(data)
-      setLoading(false)
-    }
-    load()
+    loadAnimals()
   }, [])
 
-  // Update favorit saat ada perubahan
+  // 🔥 Dengarkan event “animal-updated”
+  useEffect(() => {
+    const refresh = () => loadAnimals()
+    window.addEventListener("animal-updated", refresh)
+
+    return () => window.removeEventListener("animal-updated", refresh)
+  }, [])
+
+  // Update favorit
   useEffect(() => {
     const updateFav = () => {
       const newFavs = {}
@@ -45,13 +57,13 @@ export default function Animals() {
     toggleFavorite(id)
   }
 
-  // Filter berdasarkan pencarian
+  // Filter pencarian
   const filtered = animals.filter(animal =>
     animal.nama.toLowerCase().includes(search.toLowerCase()) ||
     animal.nama_latin.toLowerCase().includes(search.toLowerCase())
   )
 
-  // Hitung pagination
+  // Pagination
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const currentAnimals = filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE)
@@ -67,10 +79,11 @@ export default function Animals() {
     <div className="min-h-screen pt-24 px-6 pb-32 bg-cream">
       <div className="max-w-6xl mx-auto">
 
-        {/* Judul + Search */}
+        {/* Title */}
         <h1 className="text-5xl font-black text-center text-dark-red mb-6">Daftar Hewan</h1>
         <p className="text-center text-beige text-lg mb-10">Temukan satwa endemik Indonesia</p>
 
+        {/* Search Bar */}
         <div className="relative max-w-xl mx-auto mb-12">
           <Search className="absolute left-5 top-5 text-beige" size={28} />
           <input
@@ -79,13 +92,13 @@ export default function Animals() {
             value={search}
             onChange={e => {
               setSearch(e.target.value)
-              setCurrentPage(1) // Reset ke halaman 1 saat cari
+              setCurrentPage(1)
             }}
             className="w-full pl-16 pr-8 py-5 rounded-full border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-2xl transition-all"
           />
         </div>
 
-        {/* Jumlah hasil */}
+        {/* Info hasil */}
         <p className="text-center text-beige mb-8 font-medium">
           Menampilkan {currentAnimals.length} dari {filtered.length} hewan
           {search && ` untuk "${search}"`}
@@ -100,7 +113,7 @@ export default function Animals() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-3xl text-beige">Tidak ditemukan hewan </p>
+            <p className="text-3xl text-beige">Tidak ditemukan hewan</p>
             <p className="text-xl text-beige/70 mt-4">Coba kata kunci lain ya!</p>
           </div>
         ) : (
@@ -125,7 +138,7 @@ export default function Animals() {
                     </div>
                   </Link>
 
-                  {/* Tombol Favorit */}
+                  {/* Favorite Button */}
                   <button
                     onClick={(e) => handleFavorite(e, animal.id)}
                     className="absolute top-4 right-4 bg-cream/95 backdrop-blur-xl p-4 rounded-full shadow-2xl ring-4 ring-cream hover:ring-dark-red transition-all hover:scale-125 z-10"
@@ -143,7 +156,7 @@ export default function Animals() {
               ))}
             </div>
 
-            {/* PAGINATION KEREN */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-4 mt-16">
                 <button
