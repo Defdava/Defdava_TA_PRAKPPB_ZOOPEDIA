@@ -1,7 +1,7 @@
-// src/pages/DetailAnimal.jsx — FINAL FIX (UPDATE BERHASIL)
+// src/pages/DetailAnimal.jsx — FINAL + SHARE + EDIT + DELETE (ADMIN ONLY)
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAnimalById, updateAnimal } from "../services/api";
+import { getAnimalById, updateAnimal, deleteAnimal } from "../services/api";
 import Auth from "../lib/Auth";
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   X,
   Globe,
   BookOpen,
+  Trash2
 } from "lucide-react";
 
 export default function DetailAnimal() {
@@ -22,6 +23,7 @@ export default function DetailAnimal() {
   const [editData, setEditData] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   /* CEK ADMIN */
@@ -56,9 +58,7 @@ export default function DetailAnimal() {
         title: animal.nama,
         text: `Lihat info tentang ${animal.nama}`,
         url: shareUrl,
-      }).catch(() => {
-        navigator.clipboard.writeText(shareUrl);
-      });
+      }).catch(() => navigator.clipboard.writeText(shareUrl));
     } else {
       navigator.clipboard.writeText(shareUrl);
       alert("Link disalin!");
@@ -85,6 +85,23 @@ export default function DetailAnimal() {
       alert("Gagal menyimpan: " + e.message);
     }
     setSaving(false);
+  };
+
+  /* DELETE HEWAN */
+  const handleDelete = async () => {
+    if (!window.confirm("Yakin ingin menghapus hewan ini?")) return;
+
+    setDeleting(true);
+
+    try {
+      await deleteAnimal(id);
+      alert("Hewan berhasil dihapus.");
+      navigate("/animals");
+    } catch (e) {
+      alert("Gagal menghapus: " + e.message);
+    }
+
+    setDeleting(false);
   };
 
   if (loading) {
@@ -158,6 +175,7 @@ export default function DetailAnimal() {
 
       {/* INFORMASI */}
       <div className="max-w-4xl mx-auto px-6 space-y-8">
+        
         {/* HABITAT */}
         <div className="bg-white rounded-3xl shadow-xl p-6 border-4 border-beige">
           <h3 className="font-bold text-lg flex items-center gap-2">
@@ -189,7 +207,10 @@ export default function DetailAnimal() {
               rows={8}
               value={editData.deskripsi_lengkap}
               onChange={(e) =>
-                setEditData({ ...editData, deskripsi_lengkap: e.target.value })
+                setEditData({
+                  ...editData,
+                  deskripsi_lengkap: e.target.value,
+                })
               }
             />
           ) : (
@@ -199,14 +220,26 @@ export default function DetailAnimal() {
           )}
         </div>
 
-        {/* EDIT TOMBOL (ADMIN) */}
+        {/* EDIT / DELETE BUTTONS (ADMIN) */}
         {isAdmin && !isEditing && (
-          <div className="text-center">
+          <div className=" flex flex-col items-center gap-6 pt-4">
+            
+            {/* EDIT BUTTON */}
             <button
               onClick={() => setIsEditing(true)}
               className="bg-indigo-600 text-white px-10 py-4 rounded-full text-xl font-black shadow-xl hover:scale-105"
             >
               <Edit3 className="inline mr-2" /> Edit Hewan
+            </button>
+
+            {/* DELETE BUTTON */}
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-700 text-white px-10 py-4 rounded-full text-xl font-black shadow-xl hover:scale-105 disabled:opacity-50"
+            >
+              <Trash2 className="inline mr-2" />
+              {deleting ? "Menghapus..." : "Hapus Hewan"}
             </button>
           </div>
         )}
@@ -219,7 +252,7 @@ export default function DetailAnimal() {
               disabled={saving}
               className="bg-green-600 text-white px-10 py-4 rounded-full text-xl font-black shadow-xl"
             >
-              <Save className="inline mr-2" />{" "}
+              <Save className="inline mr-2" />
               {saving ? "Menyimpan..." : "Simpan"}
             </button>
 
