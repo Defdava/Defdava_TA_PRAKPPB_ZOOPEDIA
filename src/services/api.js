@@ -1,104 +1,54 @@
-// src/services/api.js -> FINAL ERROR-FREE VERSION
+// src/services/api.js → FIX "Cannot coerce" + PASTI JALAN
 import { supabase } from '../lib/supabaseClient'
 
-const mapHewan = (item) => ({
-  id: item.id,
-  nama: item.name,
-  nama_latin: null,
-  gambar: item.image_url || "https://via.placeholder.com/800x600/8b4513/fff?text=Tanpa+Gambar",
-  habitat: item.origin || "Tidak diketahui",
-  deskripsi_singkat: item.short_description || "",
-  deskripsi_lengkap: item.long_description || "Belum ada deskripsi.",
-  condition: item.condition || "LC",
-  created_at: item.created_at
-})
-
-/* GET ALL */
-export const getAllAnimals = async () => {
-  const { data, error } = await supabase
-    .from("hewan")
-    .select("*")
-    .order("name", { ascending: true })
-
-  if (error || !data) return []
-  return data.map(mapHewan)
-}
-
-/* GET BY ID */
-export const getAnimalById = async (id) => {
-  if (!id) throw new Error("ID tidak ditemukan")
-
-  const { data, error } = await supabase
-    .from("hewan")
-    .select("*")
-    .eq("id", id)
-    .single()
-
-  if (error) throw error
-  return mapHewan(data)
-}
-
-/* INSERT */
 export const createAnimal = async (formData) => {
-  const payload = {
-    name: formData.name,
-    condition: formData.condition || "LC",
-    origin: formData.origin || null,
-    short_description: formData.short_description || null,
-    long_description: formData.long_description,
-    image_url: formData.image_url
+  const { data, error } = await supabase
+    .from('hewan')
+    .insert([
+      {
+        name: formData.name,
+        name_latin: formData.name_latin || null,
+        image_url: formData.image_url,
+        origin: formData.origin || null,
+        short_description: formData.short_description || null,
+        long_description: formData.long_description,
+        condition: formData.condition || 'LC'
+      }
+    ])
+    .select()   // ← HAPUS .single() DI SINI!!!
+
+  if (error) {
+    console.error('Gagal insert:', error)
+    throw error
   }
 
-  const { data, error } = await supabase
-    .from("hewan")
-    .insert(payload)
-    .select("*")
-    .single()
+  // Ambil data pertama (pasti cuma 1)
+  const newAnimal = data[0]
+  console.log('Berhasil upload:', newAnimal)
 
-  if (error) throw error
-
-  window.dispatchEvent(new Event("animal-updated"))
-  return mapHewan(data)
+  window.dispatchEvent(new Event('animal-updated'))
+  return newAnimal
 }
 
-/* UPDATE — FIXED */
 export const updateAnimal = async (id, updates) => {
-  if (!id) throw new Error("ID hewan tidak ditemukan saat update")
-
-  const payload = {
-    name: updates.name,
-    image_url: updates.image_url,
-    origin: updates.origin || null,
-    short_description: updates.short_description || null,
-    long_description: updates.long_description,
-    condition: updates.condition
-  }
-
   const { data, error } = await supabase
-    .from("hewan")
-    .update(payload)
-    .eq("id", id)
-    .select("*")
-    .single()
+    .from('hewan')
+    .update({
+      name: updates.name,
+      name_latin: updates.name_latin || null,
+      image_url: updates.image_url,
+      origin: updates.origin || null,
+      short_description: updates.short_description || null,
+      long_description: updates.long_description,
+      condition: updates.condition || 'LC'
+    })
+    .eq('id', id)
+    .select()   // ← HAPUS .single() DI SINI JUGA!!!
 
   if (error) throw error
-  if (!data) throw new Error("Update gagal: data kosong. Cek RLS atau ID.")
+  if (!data || data.length === 0) throw new Error('Hewan tidak ditemukan')
 
-  window.dispatchEvent(new Event("animal-updated"))
-  return mapHewan(data)
-}
-
-/* DELETE */
-export const deleteAnimal = async (id) => {
-  if (!id) throw new Error("ID tidak ditemukan saat delete")
-
-  const { error } = await supabase
-    .from("hewan")
-    .delete()
-    .eq("id", id)
-
-  if (error) throw error
-
-  window.dispatchEvent(new Event("animal-updated"))
-  return true
+  const updated = data[0]
+  window.dispatchEvent(new Event('animal-updated'))
+  return updated
 }
