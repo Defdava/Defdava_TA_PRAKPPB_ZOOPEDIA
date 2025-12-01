@@ -1,9 +1,19 @@
-// src/pages/UploadAnimal.jsx → FINAL + LANGSUNG PAKAI SUPABASE (NO VERCEL!)
+// src/pages/UploadAnimal.jsx → FINAL + ADA FIELD STATUS KONSERVASI (condition)
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, AlertCircle, Loader2, Globe, BookOpen, Camera, FileText } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, Loader2, Globe, BookOpen, Camera, FileText, AlertTriangle } from 'lucide-react'
 import Auth from '../lib/Auth'
 import { createAnimal } from '../services/api'
+
+const IUCN_STATUS = [
+  { value: 'LC', label: 'Least Concern (LC) - Resiko Rendah', color: 'bg-green-500' },
+  { value: 'NT', label: 'Near Threatened (NT) - Hampir Terancam', color: 'bg-yellow-500' },
+  { value: 'VU', label: 'Vulnerable (VU) - Rentan', color: 'bg-orange-500' },
+  { value: 'EN', label: 'Endangered (EN) - Terancam Punah', color: 'bg-red-600' },
+  { value: 'CR', label: 'Critically Endangered (CR) - Kritis', color: 'bg-red-800' },
+  { value: 'EW', label: 'Extinct in the Wild (EW) - Punah di Alam', color: 'bg-gray-700' },
+  { value: 'EX', label: 'Extinct (EX) - Punah Total', color: 'bg-black' }
+]
 
 export default function UploadAnimal() {
   const navigate = useNavigate()
@@ -14,7 +24,8 @@ export default function UploadAnimal() {
     image_url: '',
     origin: '',
     short_description: '',
-    long_description: ''
+    long_description: '',
+    condition: 'LC' // default Least Concern
   })
 
   if (!Auth.isAdmin()) {
@@ -35,7 +46,7 @@ export default function UploadAnimal() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name || !form.image_url || !form.long_description) {
-      alert('Harap isi semua field wajib!')
+      alert('Harap isi semua field wajib (bertanda *)!')
       return
     }
 
@@ -67,6 +78,7 @@ export default function UploadAnimal() {
         <div className="bg-white rounded-3xl shadow-2xl p-10 border-4 border-beige">
           <form onSubmit={handleSubmit} className="space-y-8">
 
+            {/* Nama Hewan */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Camera size={28} className="text-orange-600" /> Nama Hewan <span className="text-red-500">*</span>
@@ -75,6 +87,7 @@ export default function UploadAnimal() {
                 className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium transition-all" required />
             </div>
 
+            {/* Nama Latin */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <BookOpen size={28} className="text-purple-600" /> Nama Latin
@@ -83,6 +96,7 @@ export default function UploadAnimal() {
                 className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg italic" />
             </div>
 
+            {/* URL Gambar */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Globe size={28} className="text-blue-600" /> URL Gambar <span className="text-red-500">*</span>
@@ -91,6 +105,7 @@ export default function UploadAnimal() {
                 className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium" required />
             </div>
 
+            {/* Asal / Habitat */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Globe size={28} className="text-green-600" /> Asal / Habitat
@@ -99,27 +114,55 @@ export default function UploadAnimal() {
                 className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium" />
             </div>
 
+            {/* Status Konservasi - BARU! */}
+            <div>
+              <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
+                <AlertTriangle size={28} className="text-red-600" /> Status Konservasi <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.condition}
+                onChange={e => setForm({...form, condition: e.target.value})}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium cursor-pointer transition-all"
+                required
+              >
+                {IUCN_STATUS.map(status => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-3 flex items-center gap-2">
+                <span className={`w-6 h-6 rounded-full ${IUCN_STATUS.find(s => s.value === form.condition)?.color || 'bg-gray-400'}`} />
+                <p className="text-sm font-medium text-gray-700">
+                  Status saat ini: <strong>{IUCN_STATUS.find(s => s.value === form.condition)?.label || 'Tidak diketahui'}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Deskripsi Singkat */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <FileText size={28} className="text-indigo-600" /> Deskripsi Singkat
               </label>
-              <textarea placeholder="Ringkasan singkat..." value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})}
+              <textarea placeholder="Ringkasan singkat tentang hewan ini..." value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})}
                 className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg h-32 resize-none" />
             </div>
 
+            {/* Deskripsi Lengkap */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <BookOpen size={28} className="text-teal-600" /> Deskripsi Lengkap <span className="text-red-500">*</span>
               </label>
-              <textarea placeholder="Ceritakan secara detail..." value={form.long_description} onChange={e => setForm({...form, long_description: e.target.value})}
+              <textarea placeholder="Ceritakan secara detail: habitat, perilaku, ancaman, dll..." value={form.long_description} onChange={e => setForm({...form, long_description: e.target.value})}
                 className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg h-48 resize-none" required />
             </div>
 
-            <div className="pt-6">
+            {/* Tombol Submit */}
+            <div className="pt-8">
               <button type="submit" disabled={loading}
                 className="w-full bg-gradient-to-r from-emerald-600 to-green-700 text-cream font-black py-6 rounded-2xl text-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-60 flex items-center justify-center gap-4">
                 {loading ? (
-                  <> <Loader2 className="animate-spin" size={36} /> <span>Mengunggah...</span> </>
+                  <> <Loader2 className="animate-spin" size={36} /> <span>Mengunggah Hewan...</span> </>
                 ) : (
                   <> <Upload size={36} /> <span>Upload Hewan Baru</span> </>
                 )}
