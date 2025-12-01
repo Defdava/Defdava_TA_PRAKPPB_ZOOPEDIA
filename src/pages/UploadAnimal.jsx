@@ -1,7 +1,17 @@
-// src/pages/UploadAnimal.jsx → FINAL (100% Sesuai Tabel Supabase)
+// src/pages/UploadAnimal.jsx — FINAL (DINAMIS + HANYA ADMIN)
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, AlertCircle, Loader2, Globe, BookOpen, Camera, FileText, AlertTriangle } from 'lucide-react'
+import {
+  ArrowLeft,
+  Upload,
+  AlertCircle,
+  Loader2,
+  Globe,
+  BookOpen,
+  Camera,
+  FileText,
+  AlertTriangle
+} from 'lucide-react'
 import Auth from '../lib/Auth'
 import { createAnimal } from '../services/api'
 
@@ -19,7 +29,6 @@ export default function UploadAnimal() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
 
-  // FORM SESUAI TABEL SUPABASE
   const [form, setForm] = useState({
     name: '',
     image_url: '',
@@ -29,7 +38,7 @@ export default function UploadAnimal() {
     condition: 'LC'
   })
 
-  // Hanya admin
+  // Hanya admin boleh akses halaman ini
   if (!Auth.isAdmin()) {
     return (
       <div className="min-h-screen bg-cream pt-24 pb-32 px-6 flex items-center justify-center">
@@ -62,7 +71,7 @@ export default function UploadAnimal() {
       navigate('/animals')
     } catch (err) {
       console.error(err)
-      alert('Gagal upload: ' + (err.message || 'Periksa koneksi atau RLS'))
+      alert('Gagal upload: ' + (err.message || 'Periksa koneksi atau RLS Supabase'))
     } finally {
       setLoading(false)
     }
@@ -73,15 +82,17 @@ export default function UploadAnimal() {
       <div className="max-w-4xl mx-auto">
 
         <div className="mb-10">
-          <button 
-            onClick={() => navigate('/animals')} 
+          <button
+            onClick={() => navigate('/animals')}
             className="flex items-center gap-3 text-dark-red font-bold text-lg hover:text-orange-600 transition-all"
           >
             <ArrowLeft size={28} /> Kembali ke Daftar Hewan
           </button>
 
           <h1 className="text-5xl font-black text-dark-red mt-6 text-center">Upload Hewan Baru</h1>
-          <p className="text-center text-xl text-gray-700 mt-3 font-medium">Tambahkan hewan baru ke koleksi Zoopedia</p>
+          <p className="text-center text-xl text-gray-700 mt-3 font-medium">
+            Tambahkan hewan baru ke koleksi Zoopedia
+          </p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-10 border-4 border-beige">
@@ -92,7 +103,7 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Camera size={28} className="text-orange-600" /> Nama Hewan <span className="text-red-500">*</span>
               </label>
-              <input 
+              <input
                 type="text"
                 placeholder="Contoh: Harimau Sumatera"
                 value={form.name}
@@ -107,7 +118,7 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Globe size={28} className="text-blue-600" /> URL Gambar <span className="text-red-500">*</span>
               </label>
-              <input 
+              <input
                 type="url"
                 placeholder="https://example.com/hewan.jpg"
                 value={form.image_url}
@@ -136,7 +147,6 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <AlertTriangle size={28} className="text-red-600" /> Status Konservasi <span className="text-red-500">*</span>
               </label>
-
               <select
                 value={form.condition}
                 onChange={e => setForm({ ...form, condition: e.target.value })}
@@ -148,17 +158,6 @@ export default function UploadAnimal() {
                   </option>
                 ))}
               </select>
-
-              <div className="mt-3 flex items-center gap-2">
-                <span 
-                  className={`w-6 h-6 rounded-full ${
-                    IUCN_STATUS.find(s => s.value === form.condition)?.color || 'bg-gray-400'
-                  }`}
-                />
-                <p className="text-sm font-medium text-gray-700">
-                  Status saat ini: <strong>{IUCN_STATUS.find(s => s.value === form.condition)?.label}</strong>
-                </p>
-              </div>
             </div>
 
             {/* Deskripsi Singkat */}
@@ -193,7 +192,6 @@ export default function UploadAnimal() {
               <button
                 type="submit"
                 disabled={loading}
-                onClick={handleSubmit}
                 className="w-full bg-gradient-to-r from-emerald-600 to-green-700 text-cream font-black py-6 rounded-2xl text-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-60 flex items-center justify-center gap-4"
               >
                 {loading ? (

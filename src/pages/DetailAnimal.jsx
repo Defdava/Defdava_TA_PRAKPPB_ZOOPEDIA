@@ -1,4 +1,4 @@
-// src/pages/DetailAnimal.jsx → FINAL FIX TANPA BUG
+// src/pages/DetailAnimal.jsx — FINAL: EDIT + DELETE DINAMIS
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getAnimalById, updateAnimal, deleteAnimal } from '../services/api'
@@ -36,7 +36,7 @@ export default function DetailAnimal() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  // CEK ADMIN
+  // Cek admin
   useEffect(() => {
     const check = async () => {
       const res = await Auth.isAdmin?.()
@@ -45,7 +45,7 @@ export default function DetailAnimal() {
     check()
   }, [])
 
-  // LOAD DATA
+  // Load hewan
   useEffect(() => {
     const load = async () => {
       try {
@@ -68,7 +68,6 @@ export default function DetailAnimal() {
     load()
   }, [id, navigate])
 
-  // BAGIKAN
   const handleShare = () => {
     const url = window.location.href
     if (navigator.share) {
@@ -93,7 +92,6 @@ export default function DetailAnimal() {
     })
   }
 
-  // SIMPAN (FINAL)
   const saveEdit = async () => {
     if (!editData.nama || !editData.gambar || !editData.deskripsi_lengkap) {
       alert('Nama, gambar, dan deskripsi lengkap wajib diisi!')
@@ -114,35 +112,32 @@ export default function DetailAnimal() {
 
       setAnimal(updatedAnimal)
       setIsEditing(false)
-
       alert('Hewan berhasil diperbarui!')
-      window.dispatchEvent(new Event('animal-updated'))
+      // event 'animal-updated' sudah dipanggil di api.js
     } catch (err) {
       console.error(err)
-      alert('Gagal menyimpan: ' + err.message)
+      alert('Gagal menyimpan: ' + (err.message || 'Periksa koneksi / RLS Supabase'))
     } finally {
       setIsSaving(false)
     }
   }
 
-  // HAPUS
   const handleDelete = async () => {
     if (!window.confirm('Yakin ingin menghapus hewan ini?')) return
-    setIsDeleting(true)
 
+    setIsDeleting(true)
     try {
       await deleteAnimal(id)
       alert('Hewan berhasil dihapus.')
       navigate('/animals')
     } catch (err) {
       console.error(err)
-      alert('Gagal menghapus: ' + err.message)
+      alert('Gagal menghapus: ' + (err.message || 'Periksa koneksi / RLS Supabase'))
     } finally {
       setIsDeleting(false)
     }
   }
 
-  // LOADING
   if (!animal) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -157,7 +152,7 @@ export default function DetailAnimal() {
   return (
     <div className="min-h-screen bg-cream pb-32">
 
-      {/* BACK */}
+      {/* Kembali */}
       <button
         onClick={() => navigate(-1)}
         className="fixed top-4 left-4 z-50 flex items-center gap-3 bg-dark-red text-cream px-6 py-3 rounded-full font-bold shadow-xl hover:bg-red-800 transition-all hover:scale-105"
@@ -165,7 +160,7 @@ export default function DetailAnimal() {
         <ArrowLeft size={24} /> Kembali
       </button>
 
-      {/* SHARE */}
+      {/* Bagikan */}
       <button
         onClick={handleShare}
         className="fixed bottom-24 right-4 z-50 bg-green-700 text-cream px-6 py-4 rounded-full shadow-xl flex items-center gap-3 font-bold hover:scale-110 transition-all"
@@ -173,7 +168,7 @@ export default function DetailAnimal() {
         <Share2 size={28} /> Bagikan
       </button>
 
-      {/* GAMBAR */}
+      {/* Gambar */}
       <div className="w-full max-w-5xl mx-auto pt-20 px-4">
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-8 border-beige">
           {isEditing ? (
@@ -194,7 +189,7 @@ export default function DetailAnimal() {
         </div>
       </div>
 
-      {/* NAMA */}
+      {/* Nama */}
       <div className="px-6 py-10 text-center">
         {isEditing ? (
           <input
@@ -210,7 +205,7 @@ export default function DetailAnimal() {
         )}
       </div>
 
-      {/* INFO */}
+      {/* Info */}
       <div className="px-6 max-w-4xl mx-auto space-y-8">
 
         {/* Habitat & Status */}
@@ -223,7 +218,7 @@ export default function DetailAnimal() {
             {isEditing ? (
               <input
                 type="text"
-                value={editData.habitat}
+                value={editData.habitat || ''}
                 onChange={e => setEditData({ ...editData, habitat: e.target.value })}
                 className="w-full border-b-2 border-beige bg-transparent text-lg"
               />
@@ -232,7 +227,7 @@ export default function DetailAnimal() {
             )}
           </div>
 
-          {/* Status */}
+          {/* Status Konservasi */}
           <div className="bg-white rounded-3xl shadow-xl p-6 border-4 border-beige">
             <h3 className="text-lg font-bold text-dark-red mb-3 flex items-center gap-2">
               <AlertTriangle size={20} /> Status Konservasi
@@ -258,7 +253,7 @@ export default function DetailAnimal() {
           </div>
         </div>
 
-        {/* deskripsi singkat */}
+        {/* Deskripsi singkat */}
         {animal.deskripsi_singkat && !isEditing && (
           <div className="bg-orange-50 rounded-3xl p-8 border-4 border-orange-200">
             <p className="text-dark-red text-xl font-bold text-justify">
@@ -267,14 +262,14 @@ export default function DetailAnimal() {
           </div>
         )}
 
-        {/* deskripsi lengkap */}
+        {/* Deskripsi lengkap */}
         <div className="bg-white rounded-3xl shadow-xl p-8 border-4 border-beige">
           <h3 className="text-2xl font-bold text-dark-red mb-6 flex items-center gap-3">
             <BookOpen size={28} /> Deskripsi Lengkap
           </h3>
           {isEditing ? (
             <textarea
-              value={editData.deskripsi_lengkap}
+              value={editData.deskripsi_lengkap || ''}
               onChange={e => setEditData({ ...editData, deskripsi_lengkap: e.target.value })}
               rows={10}
               className="w-full border-4 border-beige rounded-xl p-6 text-lg"
@@ -286,7 +281,7 @@ export default function DetailAnimal() {
           )}
         </div>
 
-        {/* tombol admin */}
+        {/* Tombol admin (edit/delete) */}
         {!isEditing && isAdmin && (
           <div className="flex flex-col md:flex-row justify-center gap-6 pt-8">
             <button
@@ -301,12 +296,12 @@ export default function DetailAnimal() {
               disabled={isDeleting}
               className="bg-red-700 text-cream px-10 py-4 rounded-full text-lg font-black shadow-xl hover:scale-105 transition-all disabled:opacity-60"
             >
-              <Trash2 className="inline mr-2" /> {isDeleting ? "Menghapus..." : "Hapus"}
+              <Trash2 className="inline mr-2" /> {isDeleting ? 'Menghapus...' : 'Hapus'}
             </button>
           </div>
         )}
 
-        {/* tombol edit */}
+        {/* Tombol simpan/batal saat editing */}
         {isEditing && (
           <div className="flex flex-col md:flex-row justify-center gap-6 pt-8">
             <button
@@ -314,7 +309,7 @@ export default function DetailAnimal() {
               disabled={isSaving}
               className="bg-emerald-700 text-cream px-10 py-4 rounded-full text-lg font-black shadow-xl hover:scale-105 transition-all disabled:opacity-60"
             >
-              <Save className="inline mr-2" /> {isSaving ? "Menyimpan..." : "Simpan"}
+              <Save className="inline mr-2" /> {isSaving ? 'Menyimpan...' : 'Simpan'}
             </button>
 
             <button

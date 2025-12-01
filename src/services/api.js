@@ -1,4 +1,4 @@
-// src/services/api.js — FINAL TANPA name_latin
+// src/services/api.js — FINAL DINAMIS TANPA name_latin
 import { supabase } from '../lib/supabaseClient'
 
 /* ============================================
@@ -40,9 +40,10 @@ export const getAnimalById = async (id) => {
     .from('hewan')
     .select('*')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new Error('Hewan tidak ditemukan')
 
   return mapAnimal(data)
 }
@@ -64,12 +65,15 @@ export const createAnimal = async (form) => {
     .from('hewan')
     .insert(payload)
     .select('*')
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new Error('Insert ditolak oleh RLS / tidak ada data')
 
+  // supaya halaman Animals auto reload
   window.dispatchEvent(new Event('animal-updated'))
 
-  return mapAnimal(data[0])
+  return mapAnimal(data)
 }
 
 /* ============================================
@@ -90,12 +94,14 @@ export const updateAnimal = async (id, form) => {
     .update(payload)
     .eq('id', id)
     .select('*')
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new Error('Update ditolak oleh RLS / data kosong')
 
   window.dispatchEvent(new Event('animal-updated'))
 
-  return mapAnimal(data[0])
+  return mapAnimal(data)
 }
 
 /* ============================================
