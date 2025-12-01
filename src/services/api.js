@@ -1,121 +1,135 @@
-// src/services/api.js — FINAL DINAMIS TANPA name_latin
-import { supabase } from '../lib/supabaseClient'
+// src/services/api.js
+import Auth from "../lib/Auth";
 
-/* ============================================
-   MAP DATA SUPABASE -> FRONTEND FORMAT
-============================================ */
-const mapAnimal = (row) => ({
-  id: row.id,
-  nama: row.name,
-  gambar: row.image_url || "https://via.placeholder.com/800x600?text=No+Image",
-  habitat: row.origin || "Tidak diketahui",
-  deskripsi_singkat: row.short_description || "",
-  deskripsi_lengkap: row.long_description || "",
-  condition: row.condition || "LC",
-  created_at: row.created_at
-})
+const API_URL = "https://apihewann.vercel.app/hewan";
 
-/* ============================================
-   GET ALL ANIMALS
-============================================ */
+/* ===============================
+   MAP DATA API → FRONTEND FORMAT
+================================ */
+const mapAnimal = (item) => ({
+  id: item.id,
+  nama: item.name,
+  gambar: item.image_url,
+  habitat: item.origin,
+  deskripsi_singkat: item.short_description || "",
+  deskripsi_lengkap: item.long_description || "",
+  condition: item.condition,
+  created_at: item.created_at,
+  updated_at: item.updated_at
+});
+
+/* ===============================
+   GET SEMUA HEWAN
+================================ */
 export const getAllAnimals = async () => {
-  const { data, error } = await supabase
-    .from('hewan')
-    .select('*')
-    .order('created_at', { ascending: false })
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
 
-  if (error) {
-    console.error("Error getAllAnimals:", error)
-    return []
+    if (!Array.isArray(data)) return [];
+    return data.map(mapAnimal);
+  } catch (err) {
+    console.error("Gagal memuat semua hewan:", err);
+    return [];
   }
+};
 
-  return data?.map(mapAnimal) || []
-}
-
-/* ============================================
-   GET ANIMAL BY ID
-============================================ */
+/* ===============================
+   GET HEWAN BY ID (LOCAL FIND)
+================================ */
 export const getAnimalById = async (id) => {
-  const { data, error } = await supabase
-    .from('hewan')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle()
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
 
-  if (error) throw error
-  if (!data) throw new Error('Hewan tidak ditemukan')
+    const hasil = data.find((item) => String(item.id) === String(id));
+    return hasil ? mapAnimal(hasil) : null;
+  } catch (err) {
+    console.error("Gagal memuat hewan:", err);
+    throw new Error("Gagal memuat detail hewan.");
+  }
+};
 
-  return mapAnimal(data)
-}
+/* ===================================================
+   ADMIN CHECK
+=================================================== */
+const requireAdmin = () => {
+  if (!Auth.isAdmin()) {
+    throw new Error("Akses ditolak. Hanya admin.");
+  }
+};
 
-/* ============================================
-   CREATE ANIMAL
-============================================ */
-export const createAnimal = async (form) => {
-  const payload = {
-    name: form.name,
-    image_url: form.image_url,
-    origin: form.origin || null,
-    short_description: form.short_description || null,
-    long_description: form.long_description,
-    condition: form.condition || 'LC'
+/* ===============================
+   CREATE HEWAN
+================================ */
+export const createAnimal = async (payload) => {
+  requireAdmin();
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: payload.name,
+      condition: payload.condition,
+      origin: payload.origin,
+      short_description: payload.short_description || "",
+      long_description: payload.long_description || "",
+      image_url: payload.image_url
+    })
+  });
+
+  if (!res.ok) {
+    console.error(await res.text());
+    throw new Error("Gagal mengunggah hewan.");
   }
 
-  const { data, error } = await supabase
-    .from('hewan')
-    .insert(payload)
-    .select('*')
-    .maybeSingle()
+  window.dispatchEvent(new Event("animal-updated"));
+  return mapAnimal(await res.json());
+};
 
-  if (error) throw error
-  if (!data) throw new Error('Insert ditolak oleh RLS / tidak ada data')
+/* ===============================
+   UPDATE HEWAN
+================================ */
+export const updateAnimal = async (id, payload) => {
+  requireAdmin();
 
-  // supaya halaman Animals auto reload
-  window.dispatchEvent(new Event('animal-updated'))
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: payload.name,
+      condition: payload.condition,
+      origin: payload.origin,
+      short_description: payload.short_description || "",
+      long_description: payload.long_description || "",
+      image_url: payload.image_url
+    })
+  });
 
-  return mapAnimal(data)
-}
-
-/* ============================================
-   UPDATE ANIMAL
-============================================ */
-export const updateAnimal = async (id, form) => {
-  const payload = {
-    name: form.nama || form.name,
-    image_url: form.gambar || form.image_url,
-    origin: form.habitat || form.origin || null,
-    short_description: form.deskripsi_singkat || form.short_description || null,
-    long_description: form.deskripsi_lengkap || form.long_description,
-    condition: form.condition || 'LC'
+  if (!res.ok) {
+    console.error(await res.text());
+    throw new Error("Gagal memperbarui hewan.");
   }
 
-  const { data, error } = await supabase
-    .from('hewan')
-    .update(payload)
-    .eq('id', id)
-    .select('*')
-    .maybeSingle()
+  window.dispatchEvent(new Event("animal-updated"));
+  return mapAnimal(await res.json());
+};
 
-  if (error) throw error
-  if (!data) throw new Error('Update ditolak oleh RLS / data kosong')
-
-  window.dispatchEvent(new Event('animal-updated'))
-
-  return mapAnimal(data)
-}
-
-/* ============================================
-   DELETE ANIMAL
-============================================ */
+/* ===============================
+   DELETE HEWAN
+================================ */
 export const deleteAnimal = async (id) => {
-  const { error } = await supabase
-    .from('hewan')
-    .delete()
-    .eq('id', id)
+  requireAdmin();
 
-  if (error) throw error
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE"
+  });
 
-  window.dispatchEvent(new Event('animal-updated'))
+  if (!res.ok) {
+    console.error(await res.text());
+    throw new Error("Gagal menghapus hewan.");
+  }
 
-  return true
-}
+  window.dispatchEvent(new Event("animal-updated"));
+  return true;
+};
