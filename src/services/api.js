@@ -35,15 +35,14 @@ export const getAllAnimals = async () => {
 };
 
 /* ===============================
-   GET HEWAN BY ID (LOCAL FIND)
+   GET HEWAN BY ID
 ================================ */
 export const getAnimalById = async (id) => {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(`${API_URL}/${id}`);
     const data = await res.json();
 
-    const hasil = data.find((item) => String(item.id) === String(id));
-    return hasil ? mapAnimal(hasil) : null;
+    return data ? mapAnimal(data) : null;
   } catch (err) {
     console.error("Gagal memuat hewan:", err);
     throw new Error("Gagal memuat detail hewan.");
@@ -60,7 +59,7 @@ const requireAdmin = () => {
 };
 
 /* ===============================
-   CREATE HEWAN
+   CREATE HEWAN (POST)
 ================================ */
 export const createAnimal = async (payload) => {
   requireAdmin();
@@ -88,12 +87,12 @@ export const createAnimal = async (payload) => {
 };
 
 /* ===============================
-   UPDATE HEWAN
+   UPDATE HEWAN (PUT /hewan/:id)
 ================================ */
 export const updateAnimal = async (id, payload) => {
   requireAdmin();
 
-  const res = await fetch(`${API_URL}/update/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -116,18 +115,17 @@ export const updateAnimal = async (id, payload) => {
 };
 
 /* ===============================
-   DELETE HEWAN (API VERCEL FIX)
+   DELETE HEWAN (DELETE /hewan/:id)
 ================================ */
 export const deleteAnimal = async (id) => {
   requireAdmin();
 
-  const res = await fetch(`${API_URL}/delete/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "DELETE"
   });
 
   if (!res.ok) {
-    const msg = await res.text();
-    console.error("Delete Error:", msg);
+    console.error(await res.text());
     throw new Error("Gagal menghapus hewan.");
   }
 
