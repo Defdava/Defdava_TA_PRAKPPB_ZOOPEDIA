@@ -7,6 +7,7 @@ import {
   Navigate, 
   useLocation 
 } from 'react-router-dom'
+
 import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
 import HeaderNav from './components/HeaderNav'
@@ -30,13 +31,17 @@ function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null)
   const location = useLocation()
 
-  // 1. Splash 3 detik
+  /* ========================================================
+     1. SPLASH SCREEN 3 DETIK
+  ======================================================== */
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000)
     return () => clearTimeout(timer)
   }, [])
 
-  // 2. Cek status login sekali saat app mulai
+  /* ========================================================
+     2. CEK STATUS LOGIN SAAT APP PERTAMA KALI DIMUAT
+  ======================================================== */
   useEffect(() => {
     const check = async () => {
       await Auth.init?.()
@@ -45,27 +50,31 @@ function AppContent() {
     check()
   }, [])
 
-  // 3. Simpan halaman terakhir (kecuali login/register)
+  /* ========================================================
+     3. SELALU SIMPAN HALAMAN SEKARANG (UNTUK RESTORE RELOAD)
+  ======================================================== */
   useEffect(() => {
-    if (isAuthenticated === true) {
-      const path = location.pathname + location.search
-      if (!['/login', '/register'].includes(location.pathname)) {
-        sessionStorage.setItem('lastPageBeforeRefresh', path)
-      }
-    }
-  }, [location, isAuthenticated])
+    const path = location.pathname + location.search
+    sessionStorage.setItem("lastPageBeforeRefresh", path)
+  }, [location])
 
-  // 4. Dengarkan perubahan login/logout
+  /* ========================================================
+     4. LISTEN PERUBAHAN LOGIN/LOGOUT
+  ======================================================== */
   useEffect(() => {
     const handler = () => setIsAuthenticated(Auth.isAuthenticated())
     Auth.subscribe?.(handler)
     return () => Auth.unsubscribe?.(handler)
   }, [])
 
+  /* ========================================================
+     RENDERING
+  ======================================================== */
+
   // Splash
   if (showSplash) return <Splash />
 
-  // Loading auth
+  // Loading Auth
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -83,12 +92,19 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        {/* Jika user buka route selain login/register → paksa login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
   }
 
-  // Jika sudah login → restore halaman terakhir untuk root
-  const lastPage = sessionStorage.getItem('lastPageBeforeRefresh') || '/*'
+  /* ========================================================
+     JIKA USER SUDAH LOGIN
+     ROOT "/" AKAN DIARAHKAN KE LAST PAGE SEBELUM REFRESH
+     NAMUN REFRESH DI HALAMAN APA PUN TETAP BERADA DI HALAMAN ITU
+  ======================================================== */
+
+  const lastPage = sessionStorage.getItem("lastPageBeforeRefresh") || "/dashboard"
 
   return (
     <>
@@ -96,10 +112,11 @@ function AppContent() {
 
       <div className="min-h-screen bg-cream pt-20 pb-32">
         <Routes>
-          {/* Root diarahkan ke lastPage */}
+
+          {/* ROOT REDIRECT KE LAST PAGE */}
           <Route path="/" element={<Navigate to={lastPage} replace />} />
 
-          {/* Semua halaman protected */}
+          {/* HALAMAN PROTECTED */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/animals" element={<Animals />} />
           <Route path="/animals/:id" element={<DetailAnimal />} />
@@ -110,7 +127,7 @@ function AppContent() {
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/upload-animal" element={<UploadAnimal />} />
 
-          {/* 404 → kembali ke lastPage */}
+          {/* JIKA PAGE TIDAK ADA → BALIK KE LAST PAGE */}
           <Route path="*" element={<Navigate to={lastPage} replace />} />
         </Routes>
 

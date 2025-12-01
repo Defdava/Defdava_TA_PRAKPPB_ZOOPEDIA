@@ -1,22 +1,30 @@
-// src/services/api.js → FINAL + INSERT, UPDATE, DELETE
+// src/services/api.js → FINAL (Sesuai Struktur Tabel Supabase)
 import { supabase } from '../lib/supabaseClient'
 
+// Mapping biar nama tetap konsisten di frontend
 const mapHewan = (item) => ({
   id: item.id,
-  nama: item.name || "Hewan Tidak Diketahui",
-  nama_latin: item.name_latin || "-",
-  gambar: item.image_url || "https://via.placeholder.com/800x600?text=No+Image",
+  nama: item.name,
+  nama_latin: null, // Tidak ada di DB → tetap null
+  gambar: item.image_url || "https://via.placeholder.com/800x600/8b4513/fff?text=Tanpa+Gambar",
   habitat: item.origin || "Tidak diketahui",
-  deskripsi: item.long_description || item.short_description || "Belum ada deskripsi.",
-  status_konservasi: item.condition
+  deskripsi_singkat: item.short_description || "",
+  deskripsi_lengkap: item.long_description || "Belum ada deskripsi.",
+  condition: item.condition || "LC",
+  created_at: item.created_at
 })
 
 export const getAllAnimals = async () => {
   const { data, error } = await supabase
     .from('hewan')
     .select('*')
-    .order('name')
-  if (error) throw error
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Error getAllAnimals:', error)
+    return []
+  }
+
   return data.map(mapHewan)
 }
 
@@ -26,63 +34,77 @@ export const getAnimalById = async (id) => {
     .select('*')
     .eq('id', id)
     .single()
-  if (error) throw error
+
+  if (error) {
+    console.error('Error getAnimalById:', error)
+    throw error
+  }
+
   return mapHewan(data)
 }
 
-// BARU: Upload Hewan Baru
 export const createAnimal = async (formData) => {
+  const payload = {
+    name: formData.name || formData.nama,
+    condition: formData.condition || 'LC',
+    origin: formData.origin || formData.habitat || null,
+    short_description: formData.short_description || formData.deskripsi_singkat || null,
+    long_description: formData.long_description || formData.deskripsi_lengkap,
+    image_url: formData.image_url || formData.gambar
+  }
+
   const { data, error } = await supabase
     .from('hewan')
-    .insert([
-      {
-        name: formData.name,
-        name_latin: formData.name_latin,
-        image_url: formData.image_url,
-        origin: formData.origin,
-        short_description: formData.short_description,
-        long_description: formData.long_description,
-        condition: formData.condition || 'LC', // default jika ada kolom
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    ])
+    .insert(payload)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Gagal upload hewan:', error)
+    throw error
+  }
+
+  window.dispatchEvent(new Event('animal-updated'))
   return mapHewan(data)
 }
 
-// BARU: Update Hewan (untuk Edit nanti)
 export const updateAnimal = async (id, updates) => {
+  const payload = {
+    name: updates.nama,
+    condition: updates.condition,
+    origin: updates.habitat || null,
+    short_description: updates.deskripsi_singkat || null,
+    long_description: updates.deskripsi_lengkap,
+    image_url: updates.gambar
+  }
+
   const { data, error } = await supabase
     .from('hewan')
-    .update({
-      name: updates.nama,
-      name_latin: updates.nama_latin,
-      image_url: updates.gambar,
-      origin: updates.habitat,
-      short_description: updates.short_description,
-      long_description: updates.deskripsi,
-      condition: updates.status_konservasi,
-      updated_at: new Date()
-    })
+    .update(payload)
     .eq('id', id)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Gagal update hewan:', error)
+    throw error
+  }
+
+  window.dispatchEvent(new Event('animal-updated'))
   return mapHewan(data)
 }
 
-// BARU: Hapus Hewan
 export const deleteAnimal = async (id) => {
   const { error } = await supabase
     .from('hewan')
     .delete()
     .eq('id', id)
 
-  if (error) throw error
+  if (error) {
+    console.error('Gagal hapus hewan:', error)
+    throw error
+  }
+
+  window.dispatchEvent(new Event('animal-updated'))
   return true
 }

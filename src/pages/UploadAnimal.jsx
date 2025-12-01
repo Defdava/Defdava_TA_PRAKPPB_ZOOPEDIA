@@ -1,4 +1,4 @@
-// src/pages/UploadAnimal.jsx → FINAL + ADA FIELD STATUS KONSERVASI (condition)
+// src/pages/UploadAnimal.jsx → FINAL (100% Sesuai Tabel Supabase)
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, AlertCircle, Loader2, Globe, BookOpen, Camera, FileText, AlertTriangle } from 'lucide-react'
@@ -18,16 +18,18 @@ const IUCN_STATUS = [
 export default function UploadAnimal() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+
+  // FORM SESUAI TABEL SUPABASE
   const [form, setForm] = useState({
     name: '',
-    name_latin: '',
     image_url: '',
     origin: '',
     short_description: '',
     long_description: '',
-    condition: 'LC' // default Least Concern
+    condition: 'LC'
   })
 
+  // Akses admin
   if (!Auth.isAdmin()) {
     return (
       <div className="min-h-screen bg-cream pt-24 pb-32 px-6 flex items-center justify-center">
@@ -68,9 +70,13 @@ export default function UploadAnimal() {
       <div className="max-w-4xl mx-auto">
 
         <div className="mb-10">
-          <button onClick={() => navigate('/animals')} className="flex items-center gap-3 text-dark-red font-bold text-lg hover:text-orange-600 transition-all">
+          <button 
+            onClick={() => navigate('/animals')} 
+            className="flex items-center gap-3 text-dark-red font-bold text-lg hover:text-orange-600 transition-all"
+          >
             <ArrowLeft size={28} /> Kembali ke Daftar Hewan
           </button>
+
           <h1 className="text-5xl font-black text-dark-red mt-6 text-center">Upload Hewan Baru</h1>
           <p className="text-center text-xl text-gray-700 mt-3 font-medium">Tambahkan hewan baru ke koleksi Zoopedia</p>
         </div>
@@ -83,17 +89,14 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Camera size={28} className="text-orange-600" /> Nama Hewan <span className="text-red-500">*</span>
               </label>
-              <input type="text" placeholder="Contoh: Harimau Sumatera" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium transition-all" required />
-            </div>
-
-            {/* Nama Latin */}
-            <div>
-              <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
-                <BookOpen size={28} className="text-purple-600" /> Nama Latin
-              </label>
-              <input type="text" placeholder="Contoh: Panthera tigris sumatrae" value={form.name_latin} onChange={e => setForm({...form, name_latin: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg italic" />
+              <input 
+                type="text"
+                placeholder="Contoh: Harimau Sumatera"
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium transition-all"
+                required
+              />
             </div>
 
             {/* URL Gambar */}
@@ -101,8 +104,14 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Globe size={28} className="text-blue-600" /> URL Gambar <span className="text-red-500">*</span>
               </label>
-              <input type="url" placeholder="https://example.com/hewan.jpg" value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium" required />
+              <input 
+                type="url"
+                placeholder="https://example.com/hewan.jpg"
+                value={form.image_url}
+                onChange={e => setForm({ ...form, image_url: e.target.value })}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium"
+                required
+              />
             </div>
 
             {/* Asal / Habitat */}
@@ -110,20 +119,25 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <Globe size={28} className="text-green-600" /> Asal / Habitat
               </label>
-              <input type="text" placeholder="Contoh: Sumatera, Indonesia" value={form.origin} onChange={e => setForm({...form, origin: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium" />
+              <input
+                type="text"
+                placeholder="Contoh: Sumatera, Indonesia"
+                value={form.origin}
+                onChange={e => setForm({ ...form, origin: e.target.value })}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium"
+              />
             </div>
 
-            {/* Status Konservasi - BARU! */}
+            {/* Status Konservasi */}
             <div>
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <AlertTriangle size={28} className="text-red-600" /> Status Konservasi <span className="text-red-500">*</span>
               </label>
+
               <select
                 value={form.condition}
-                onChange={e => setForm({...form, condition: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium cursor-pointer transition-all"
-                required
+                onChange={e => setForm({ ...form, condition: e.target.value })}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium cursor-pointer"
               >
                 {IUCN_STATUS.map(status => (
                   <option key={status.value} value={status.value}>
@@ -131,10 +145,15 @@ export default function UploadAnimal() {
                   </option>
                 ))}
               </select>
+
               <div className="mt-3 flex items-center gap-2">
-                <span className={`w-6 h-6 rounded-full ${IUCN_STATUS.find(s => s.value === form.condition)?.color || 'bg-gray-400'}`} />
+                <span 
+                  className={`w-6 h-6 rounded-full ${
+                    IUCN_STATUS.find(s => s.value === form.condition)?.color || 'bg-gray-400'
+                  }`}
+                />
                 <p className="text-sm font-medium text-gray-700">
-                  Status saat ini: <strong>{IUCN_STATUS.find(s => s.value === form.condition)?.label || 'Tidak diketahui'}</strong>
+                  Status saat ini: <strong>{IUCN_STATUS.find(s => s.value === form.condition)?.label}</strong>
                 </p>
               </div>
             </div>
@@ -144,8 +163,12 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <FileText size={28} className="text-indigo-600" /> Deskripsi Singkat
               </label>
-              <textarea placeholder="Ringkasan singkat tentang hewan ini..." value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg h-32 resize-none" />
+              <textarea
+                placeholder="Ringkasan singkat tentang hewan ini..."
+                value={form.short_description}
+                onChange={e => setForm({ ...form, short_description: e.target.value })}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg h-32 resize-none"
+              />
             </div>
 
             {/* Deskripsi Lengkap */}
@@ -153,21 +176,36 @@ export default function UploadAnimal() {
               <label className="flex items-center gap-3 text-dark-red font-black text-xl mb-3">
                 <BookOpen size={28} className="text-teal-600" /> Deskripsi Lengkap <span className="text-red-500">*</span>
               </label>
-              <textarea placeholder="Ceritakan secara detail: habitat, perilaku, ancaman, dll..." value={form.long_description} onChange={e => setForm({...form, long_description: e.target.value})}
-                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg h-48 resize-none" required />
+              <textarea
+                placeholder="Ceritakan secara detail: habitat, perilaku, ancaman, dll..."
+                value={form.long_description}
+                onChange={e => setForm({ ...form, long_description: e.target.value })}
+                className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg h-48 resize-none"
+                required
+              />
             </div>
 
-            {/* Tombol Submit */}
+            {/* SUBMIT BUTTON */}
             <div className="pt-8">
-              <button type="submit" disabled={loading}
-                className="w-full bg-gradient-to-r from-emerald-600 to-green-700 text-cream font-black py-6 rounded-2xl text-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-60 flex items-center justify-center gap-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-emerald-600 to-green-700 text-cream font-black py-6 rounded-2xl text-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-60 flex items-center justify-center gap-4"
+              >
                 {loading ? (
-                  <> <Loader2 className="animate-spin" size={36} /> <span>Mengunggah Hewan...</span> </>
+                  <>
+                    <Loader2 className="animate-spin" size={36} />
+                    Mengunggah Hewan...
+                  </>
                 ) : (
-                  <> <Upload size={36} /> <span>Upload Hewan Baru</span> </>
+                  <>
+                    <Upload size={36} />
+                    Upload Hewan Baru
+                  </>
                 )}
               </button>
             </div>
+
           </form>
         </div>
 
