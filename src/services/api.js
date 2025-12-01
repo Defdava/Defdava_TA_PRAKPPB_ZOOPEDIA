@@ -1,13 +1,10 @@
-// src/services/api.js → FINAL FIXED VERSION
+// src/services/api.js -> FINAL ERROR-FREE VERSION
 import { supabase } from '../lib/supabaseClient'
 
-/* ============================================
-   MAPPING SUPABASE → UI
-============================================ */
 const mapHewan = (item) => ({
   id: item.id,
   nama: item.name,
-  nama_latin: null, // tidak ada di database
+  nama_latin: null,
   gambar: item.image_url || "https://via.placeholder.com/800x600/8b4513/fff?text=Tanpa+Gambar",
   habitat: item.origin || "Tidak diketahui",
   deskripsi_singkat: item.short_description || "",
@@ -16,42 +13,36 @@ const mapHewan = (item) => ({
   created_at: item.created_at
 })
 
-/* ============================================
-   GET ALL
-============================================ */
+/* GET ALL */
 export const getAllAnimals = async () => {
   const { data, error } = await supabase
-    .from('hewan')
-    .select('*')
-    .order('name', { ascending: true })
+    .from("hewan")
+    .select("*")
+    .order("name", { ascending: true })
 
   if (error || !data) return []
-
   return data.map(mapHewan)
 }
 
-/* ============================================
-   GET BY ID
-============================================ */
+/* GET BY ID */
 export const getAnimalById = async (id) => {
+  if (!id) throw new Error("ID tidak ditemukan")
+
   const { data, error } = await supabase
-    .from('hewan')
-    .select('*')
-    .eq('id', id)
+    .from("hewan")
+    .select("*")
+    .eq("id", id)
     .single()
 
   if (error) throw error
-
   return mapHewan(data)
 }
 
-/* ============================================
-   INSERT
-============================================ */
+/* INSERT */
 export const createAnimal = async (formData) => {
   const payload = {
     name: formData.name,
-    condition: formData.condition || 'LC',
+    condition: formData.condition || "LC",
     origin: formData.origin || null,
     short_description: formData.short_description || null,
     long_description: formData.long_description,
@@ -59,22 +50,21 @@ export const createAnimal = async (formData) => {
   }
 
   const { data, error } = await supabase
-    .from('hewan')
+    .from("hewan")
     .insert(payload)
-    .select('*')
+    .select("*")
     .single()
 
   if (error) throw error
 
-  window.dispatchEvent(new Event('animal-updated'))
-
+  window.dispatchEvent(new Event("animal-updated"))
   return mapHewan(data)
 }
 
-/* ============================================
-   UPDATE (FULL + FIXED)
-============================================ */
+/* UPDATE — FIXED */
 export const updateAnimal = async (id, updates) => {
+  if (!id) throw new Error("ID hewan tidak ditemukan saat update")
+
   const payload = {
     name: updates.name,
     image_url: updates.image_url,
@@ -85,31 +75,30 @@ export const updateAnimal = async (id, updates) => {
   }
 
   const { data, error } = await supabase
-    .from('hewan')
+    .from("hewan")
     .update(payload)
-    .eq('id', id)
-    .select('*')
+    .eq("id", id)
+    .select("*")
     .single()
 
   if (error) throw error
+  if (!data) throw new Error("Update gagal: data kosong. Cek RLS atau ID.")
 
-  window.dispatchEvent(new Event('animal-updated'))
-
+  window.dispatchEvent(new Event("animal-updated"))
   return mapHewan(data)
 }
 
-/* ============================================
-   DELETE
-============================================ */
+/* DELETE */
 export const deleteAnimal = async (id) => {
+  if (!id) throw new Error("ID tidak ditemukan saat delete")
+
   const { error } = await supabase
-    .from('hewan')
+    .from("hewan")
     .delete()
-    .eq('id', id)
+    .eq("id", id)
 
   if (error) throw error
 
-  window.dispatchEvent(new Event('animal-updated'))
-
+  window.dispatchEvent(new Event("animal-updated"))
   return true
 }
