@@ -1,4 +1,4 @@
-// src/services/api.js — FINAL CLEAN VERSION
+// src/services/api.js — FINAL TANPA name_latin
 import { supabase } from '../lib/supabaseClient'
 
 /* ============================================
@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabaseClient'
 const mapAnimal = (row) => ({
   id: row.id,
   nama: row.name,
-  nama_latin: row.name_latin || null,
   gambar: row.image_url || "https://via.placeholder.com/800x600?text=No+Image",
   habitat: row.origin || "Tidak diketahui",
   deskripsi_singkat: row.short_description || "",
@@ -54,7 +53,6 @@ export const getAnimalById = async (id) => {
 export const createAnimal = async (form) => {
   const payload = {
     name: form.name,
-    name_latin: form.name_latin || null,
     image_url: form.image_url,
     origin: form.origin || null,
     short_description: form.short_description || null,
@@ -80,7 +78,6 @@ export const createAnimal = async (form) => {
 export const updateAnimal = async (id, form) => {
   const payload = {
     name: form.nama || form.name,
-    name_latin: form.nama_latin || null,
     image_url: form.gambar || form.image_url,
     origin: form.habitat || form.origin || null,
     short_description: form.deskripsi_singkat || form.short_description || null,
