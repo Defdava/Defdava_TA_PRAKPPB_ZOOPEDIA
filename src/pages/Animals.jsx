@@ -1,11 +1,9 @@
 // src/pages/Animals.jsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, Search, Filter, ArrowUpDown } from 'lucide-react'
 import { getAllAnimals } from '../services/api'
 import { toggleFavorite, isFavorite } from '../lib/Favorites'
-
-const ITEMS_PER_PAGE = 8
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -27,10 +25,11 @@ export default function Animals() {
   const [sortOrder, setSortOrder] = useState('asc')
 
   const [favorites, setFavorites] = useState({})
+  const [visibleCards, setVisibleCards] = useState(8)
 
-  const [page, setPage] = useState(1)
+  const lazyRef = useRef()
 
-  // ==================== LOAD DATA ====================
+  // ==================== LOAD HEWAN ====================
   useEffect(() => {
     const loadAnimals = async () => {
       try {
@@ -43,10 +42,11 @@ export default function Animals() {
         setLoading(false)
       }
     }
+
     loadAnimals()
   }, [])
 
-  // Auto refresh jika ada perubahan
+  // Auto refresh kalau ada upload/edit
   useEffect(() => {
     const handler = () => {
       const reload = async () => {
@@ -89,16 +89,23 @@ export default function Animals() {
       : b.nama.localeCompare(a.nama)
   )
 
-  // ==================== PAGINATION ====================
-  const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE)
-  const start = (page - 1) * ITEMS_PER_PAGE
-  const currentItems = sorted.slice(start, start + ITEMS_PER_PAGE)
+  // ==================== LAZY LOAD (BENAR) ====================
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          setVisibleCards(prev => prev + 6)
+        }
+      },
+      { threshold: 1 }
+    )
 
-  const goToPage = (p) => {
-    if (p < 1 || p > totalPages) return
-    setPage(p)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+    if (lazyRef.current) observer.observe(lazyRef.current)
+
+    return () => observer.disconnect()
+  }, [])
+
+  const shownItems = sorted.slice(0, visibleCards)
 
   return (
     <div className="min-h-screen pt-20 px-4 pb-32 bg-cream">
@@ -118,10 +125,7 @@ export default function Animals() {
               type="text"
               placeholder="Cari hewan..."
               value={search}
-              onChange={e => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
+              onChange={e => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-full border-4 border-beige focus:border-dark-red outline-none font-medium text-lg shadow"
             />
           </div>
@@ -131,47 +135,43 @@ export default function Animals() {
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-red" size={22} />
             <select
               value={statusFilter}
-              onChange={e => {
-                setStatusFilter(e.target.value)
-                setPage(1)
-              }}
+              onChange={e => setStatusFilter(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-full border-4 border-beige focus:border-dark-red outline-none font-medium text-lg shadow cursor-pointer"
             >
               {STATUS_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Sort */}
+          {/* Sort A-Z / Z-A */}
           <div className="relative">
             <ArrowUpDown className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-red" size={22} />
             <select
               value={sortOrder}
-              onChange={e => {
-                setSortOrder(e.target.value)
-                setPage(1)
-              }}
+              onChange={e => setSortOrder(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-full border-4 border-beige focus:border-dark-red outline-none font-medium text-lg shadow cursor-pointer"
             >
               <option value="asc">A → Z</option>
               <option value="desc">Z → A</option>
             </select>
           </div>
+
         </div>
 
-        {/* LIST */}
+        {/* List Hewan */}
         {loading ? (
           <LoadingSkeleton />
-        ) : currentItems.length === 0 ? (
+        ) : shownItems.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-3xl font-black text-dark-red">Tidak ada hewan ditemukan</p>
           </div>
         ) : (
           <>
-            {/* GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {currentItems.map(animal => (
+              {shownItems.map(animal => (
                 <Card
                   key={animal.id}
                   animal={animal}
@@ -181,24 +181,8 @@ export default function Animals() {
               ))}
             </div>
 
-            {/* PAGINATION */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-12 gap-2">
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => goToPage(i + 1)}
-                    className={`w-12 h-12 rounded-full font-bold transition-all ${
-                      page === i + 1
-                        ? 'bg-red-700 text-cream scale-110 shadow-xl'
-                        : 'bg-cream text-dark-red hover:bg-beige'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Lazy load trigger */}
+            <div ref={lazyRef} className="h-12"></div>
           </>
         )}
 
@@ -215,12 +199,11 @@ function Card({ animal, isFav, onFav }) {
         to={`/animals/${animal.id}`}
         className="block rounded-2xl overflow-hidden shadow-md border border-gray-200 bg-white hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
       >
-        {/* IMAGE - LAZY LOAD */}
+        {/* IMAGE */}
         <div className="w-full h-48 bg-gray-100 overflow-hidden">
           <img
             src={animal.gambar}
             alt={animal.nama}
-            loading="lazy" // LAZY LOAD GAMBAR
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>

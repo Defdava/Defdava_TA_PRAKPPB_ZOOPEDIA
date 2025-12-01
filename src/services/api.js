@@ -1,20 +1,24 @@
-// src/services/api.js → FINAL + PASTI JALAN + EXPORT SEMUA YANG DIPERLUKAN
+// src/services/api.js — FINAL CLEAN VERSION
 import { supabase } from '../lib/supabaseClient'
 
-// Mapping biar semua komponen tetap pake field Inggris (name, image_url, dll)
-const mapHewan = (item) => ({
-  id: item.id,
-  name: item.name || "Hewan Tidak Diketahui",
-  name_latin: item.name_latin || "-",
-  image_url: item.image_url || "https://via.placeholder.com/800x600/8b4513/fff?text=No+Image",
-  origin: item.origin || "Tidak diketahui",
-  short_description: item.short_description || "",
-  long_description: item.long_description || "Belum ada deskripsi.",
-  condition: item.condition || "LC",
-  created_at: item.created_at,
-  updated_at: item.updated_at
+/* ============================================
+   MAP DATA SUPABASE -> FRONTEND FORMAT
+============================================ */
+const mapAnimal = (row) => ({
+  id: row.id,
+  nama: row.name,
+  nama_latin: row.name_latin || null,
+  gambar: row.image_url || "https://via.placeholder.com/800x600?text=No+Image",
+  habitat: row.origin || "Tidak diketahui",
+  deskripsi_singkat: row.short_description || "",
+  deskripsi_lengkap: row.long_description || "",
+  condition: row.condition || "LC",
+  created_at: row.created_at
 })
 
+/* ============================================
+   GET ALL ANIMALS
+============================================ */
 export const getAllAnimals = async () => {
   const { data, error } = await supabase
     .from('hewan')
@@ -22,12 +26,16 @@ export const getAllAnimals = async () => {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error getAllAnimals:', error)
+    console.error("Error getAllAnimals:", error)
     return []
   }
-  return data.map(mapHewan)
+
+  return data?.map(mapAnimal) || []
 }
 
+/* ============================================
+   GET ANIMAL BY ID
+============================================ */
 export const getAnimalById = async (id) => {
   const { data, error } = await supabase
     .from('hewan')
@@ -36,48 +44,66 @@ export const getAnimalById = async (id) => {
     .single()
 
   if (error) throw error
-  return mapHewan(data)
+
+  return mapAnimal(data)
 }
 
-export const createAnimal = async (formData) => {
+/* ============================================
+   CREATE ANIMAL
+============================================ */
+export const createAnimal = async (form) => {
+  const payload = {
+    name: form.name,
+    name_latin: form.name_latin || null,
+    image_url: form.image_url,
+    origin: form.origin || null,
+    short_description: form.short_description || null,
+    long_description: form.long_description,
+    condition: form.condition || 'LC'
+  }
+
   const { data, error } = await supabase
     .from('hewan')
-    .insert([{
-      name: formData.name,
-      name_latin: formData.name_latin || null,
-      image_url: formData.image_url,
-      origin: formData.origin || null,
-      short_description: formData.short_description || null,
-      long_description: formData.long_description,
-      condition: formData.condition || 'LC'
-    }])
-    .select()
+    .insert(payload)
+    .select('*')
 
   if (error) throw error
+
   window.dispatchEvent(new Event('animal-updated'))
-  return data[0] ? mapHewan(data[0]) : null
+
+  return mapAnimal(data[0])
 }
 
-export const updateAnimal = async (id, updates) => {
+/* ============================================
+   UPDATE ANIMAL
+============================================ */
+export const updateAnimal = async (id, form) => {
+  const payload = {
+    name: form.nama || form.name,
+    name_latin: form.nama_latin || null,
+    image_url: form.gambar || form.image_url,
+    origin: form.habitat || form.origin || null,
+    short_description: form.deskripsi_singkat || form.short_description || null,
+    long_description: form.deskripsi_lengkap || form.long_description,
+    condition: form.condition || 'LC'
+  }
+
   const { data, error } = await supabase
     .from('hewan')
-    .update({
-      name: updates.name,
-      name_latin: updates.name_latin || null,
-      image_url: updates.image_url || updates.gambar,
-      origin: updates.origin || null,
-      short_description: updates.short_description || null,
-      long_description: updates.long_description,
-      condition: updates.condition || 'LC'
-    })
+    .update(payload)
     .eq('id', id)
-    .select()
+    .select('*')
 
   if (error) throw error
+
   window.dispatchEvent(new Event('animal-updated'))
-  return data[0] ? mapHewan(data[0]) : null
+
+  return mapAnimal(data[0])
 }
 
+/* ============================================
+   DELETE ANIMAL
+============================================ */
 export const deleteAnimal = async (id) => {
   const { error } = await supabase
     .from('hewan')
@@ -85,6 +111,8 @@ export const deleteAnimal = async (id) => {
     .eq('id', id)
 
   if (error) throw error
+
   window.dispatchEvent(new Event('animal-updated'))
+
   return true
 }
