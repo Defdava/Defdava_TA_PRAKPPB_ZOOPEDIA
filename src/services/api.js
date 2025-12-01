@@ -131,24 +131,22 @@ export const updateAnimal = async (id, payload) => {
 };
 
 /* ===============================
-   DELETE HEWAN (DELETE /hewan)
-   id DIKIRIM DI BODY (sesuai endpoint base)
+   DELETE HEWAN (RESTFUL)
 ================================ */
 export const deleteAnimal = async (id) => {
   requireAdmin();
 
-  const res = await fetch(API_URL, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id })  // ⬅️ INI PENTING
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE"
   });
 
-  const text = await res.text();
   if (!res.ok) {
-    console.error("Delete error:", res.status, text);
+    const text = await res.text();
+    console.error("Delete error:", text);
     throw new Error("Gagal menghapus hewan.");
   }
 
   window.dispatchEvent(new Event("animal-updated"));
   return true;
 };
+
