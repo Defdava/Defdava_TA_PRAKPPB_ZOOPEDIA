@@ -1,7 +1,6 @@
-// src/services/api.js → VERSI FINAL YANG BENAR
-import { supabase } from '../lib/supabaseClient'  // ← INI YANG WAJIB!
+// src/services/api.js → FINAL + INSERT, UPDATE, DELETE
+import { supabase } from '../lib/supabaseClient'
 
-// Mapping data dari tabel `hewan`
 const mapHewan = (item) => ({
   id: item.id,
   nama: item.name || "Hewan Tidak Diketahui",
@@ -31,30 +30,40 @@ export const getAnimalById = async (id) => {
   return mapHewan(data)
 }
 
-export const updateAnimal = async (id, updates, newImageFile = null) => {
-  let image_url = updates.gambar
+// BARU: Upload Hewan Baru
+export const createAnimal = async (formData) => {
+  const { data, error } = await supabase
+    .from('hewan')
+    .insert([
+      {
+        name: formData.name,
+        name_latin: formData.name_latin,
+        image_url: formData.image_url,
+        origin: formData.origin,
+        short_description: formData.short_description,
+        long_description: formData.long_description,
+        condition: formData.condition || 'LC', // default jika ada kolom
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    ])
+    .select()
+    .single()
 
-  if (newImageFile) {
-    const fileExt = newImageFile.name.split('.').pop()
-    const fileName = `${crypto.randomUUID()}.${fileExt}`
-    const { error: uploadError } = await supabase.storage
-      .from('animal-images')
-      .upload(fileName, newImageFile)
-    if (uploadError) throw uploadError
+  if (error) throw error
+  return mapHewan(data)
+}
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('animal-images')
-      .getPublicUrl(fileName)
-    image_url = publicUrl
-  }
-
+// BARU: Update Hewan (untuk Edit nanti)
+export const updateAnimal = async (id, updates) => {
   const { data, error } = await supabase
     .from('hewan')
     .update({
       name: updates.nama,
-      name_latin: updates.nama_latin || null,
-      image_url,
+      name_latin: updates.nama_latin,
+      image_url: updates.gambar,
       origin: updates.habitat,
+      short_description: updates.short_description,
       long_description: updates.deskripsi,
       condition: updates.status_konservasi,
       updated_at: new Date()
@@ -65,4 +74,15 @@ export const updateAnimal = async (id, updates, newImageFile = null) => {
 
   if (error) throw error
   return mapHewan(data)
+}
+
+// BARU: Hapus Hewan
+export const deleteAnimal = async (id) => {
+  const { error } = await supabase
+    .from('hewan')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+  return true
 }
