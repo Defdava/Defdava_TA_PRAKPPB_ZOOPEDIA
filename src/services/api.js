@@ -1,11 +1,11 @@
-// src/services/api.js → FINAL (Sesuai Struktur Tabel Supabase)
+// src/services/api.js → SUPER OPTIMIZED FOR VERCEL
 import { supabase } from '../lib/supabaseClient'
 
-// Mapping biar nama tetap konsisten di frontend
+// Mapping data
 const mapHewan = (item) => ({
   id: item.id,
   nama: item.name,
-  nama_latin: null, // Tidak ada di DB → tetap null
+  nama_latin: null,
   gambar: item.image_url || "https://via.placeholder.com/800x600/8b4513/fff?text=Tanpa+Gambar",
   habitat: item.origin || "Tidak diketahui",
   deskripsi_singkat: item.short_description || "",
@@ -14,60 +14,66 @@ const mapHewan = (item) => ({
   created_at: item.created_at
 })
 
+/* ============================================
+   GET ALL
+============================================ */
 export const getAllAnimals = async () => {
   const { data, error } = await supabase
     .from('hewan')
     .select('*')
     .order('name', { ascending: true })
 
-  if (error) {
-    console.error('Error getAllAnimals:', error)
-    return []
-  }
+  if (error) return []
 
   return data.map(mapHewan)
 }
 
+/* ============================================
+   GET BY ID
+============================================ */
 export const getAnimalById = async (id) => {
   const { data, error } = await supabase
     .from('hewan')
     .select('*')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
-  if (error) {
-    console.error('Error getAnimalById:', error)
-    throw error
-  }
+  if (error) throw error
 
   return mapHewan(data)
 }
 
+/* ============================================
+   SUPER FAST INSERT
+============================================ */
 export const createAnimal = async (formData) => {
   const payload = {
-    name: formData.name || formData.nama,
+    name: formData.name,
     condition: formData.condition || 'LC',
-    origin: formData.origin || formData.habitat || null,
-    short_description: formData.short_description || formData.deskripsi_singkat || null,
-    long_description: formData.long_description || formData.deskripsi_lengkap,
-    image_url: formData.image_url || formData.gambar
+    origin: formData.origin || null,
+    short_description: formData.short_description || null,
+    long_description: formData.long_description,
+    image_url: formData.image_url
   }
 
+  // FASTEST WAY — only return id
   const { data, error } = await supabase
     .from('hewan')
     .insert(payload)
-    .select()
-    .single()
+    .select('id')
+    .maybeSingle()
 
-  if (error) {
-    console.error('Gagal upload hewan:', error)
-    throw error
-  }
+  if (error) throw error
 
+  // Emit refresh event ASAP
   window.dispatchEvent(new Event('animal-updated'))
-  return mapHewan(data)
+
+  return data?.id
 }
 
+/* ============================================
+   SUPER FAST UPDATE
+============================================ */
 export const updateAnimal = async (id, updates) => {
   const payload = {
     name: updates.nama,
@@ -82,29 +88,28 @@ export const updateAnimal = async (id, updates) => {
     .from('hewan')
     .update(payload)
     .eq('id', id)
-    .select()
-    .single()
+    .select('id')
+    .maybeSingle()
 
-  if (error) {
-    console.error('Gagal update hewan:', error)
-    throw error
-  }
+  if (error) throw error
 
   window.dispatchEvent(new Event('animal-updated'))
-  return mapHewan(data)
+
+  return data?.id
 }
 
+/* ============================================
+   FAST DELETE
+============================================ */
 export const deleteAnimal = async (id) => {
   const { error } = await supabase
     .from('hewan')
     .delete()
     .eq('id', id)
 
-  if (error) {
-    console.error('Gagal hapus hewan:', error)
-    throw error
-  }
+  if (error) throw error
 
   window.dispatchEvent(new Event('animal-updated'))
+
   return true
 }

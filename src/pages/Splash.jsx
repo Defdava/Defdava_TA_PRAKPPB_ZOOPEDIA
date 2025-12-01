@@ -1,4 +1,4 @@
-// src/pages/Splash.jsx → LANGSUNG KE HALAMAN TERAKHIR SETELAH 3 DETIK!
+// src/pages/Splash.jsx → RESPONSIVE MOBILE + AUTO-NAVIGATE
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import Auth from "../lib/Auth"
@@ -21,22 +21,58 @@ export default function Splash() {
   }, [navigate])
 
   return (
-    <div className="h-screen bg-gradient-to-b from-dark-red via-red-700 to-orange-900 flex flex-col items-center justify-center text-cream">
-      <div className="p-12 bg-gradient-to-br from-orange-500 to-red-700 rounded-3xl shadow-2xl animate-bounce">
-        <Cat size={140} className="text-cream drop-shadow-2xl" strokeWidth={4} />
+    <div className="h-screen w-full overflow-hidden bg-gradient-to-b from-dark-red via-red-700 to-orange-900 flex flex-col items-center justify-center text-cream px-6">
+
+      {/* LOGO */}
+      <div className="p-10 sm:p-12 bg-gradient-to-br from-orange-500 to-red-700 rounded-3xl shadow-2xl animate-bounce">
+        <Cat 
+          size={100}        // MOBILE
+          className="text-cream drop-shadow-2xl sm:size-[130px] md:size-[150px]" 
+          strokeWidth={4} 
+        />
       </div>
 
-      <h1 className="mt-12 text-8xl font-black tracking-widest bg-gradient-to-r from-beige to-yellow-100 bg-clip-text text-transparent animate-pulse">
+      {/* TITLE — RESPONSIVE */}
+      <h1 
+        className="
+          mt-10 
+          font-black 
+          tracking-widest 
+          bg-gradient-to-r from-beige to-yellow-100 bg-clip-text text-transparent
+          text-[13vw]       /* MOBILE - 13% width, tidak akan terpotong */
+          sm:text-[10vw]    /* Tablet */
+          md:text-7xl       /* Desktop */
+          lg:text-8xl
+          animate-pulse
+          text-center
+        "
+      >
         ZOOPEDIA
       </h1>
 
-      <p className="mt-6 text-2xl font-light text-beige/90">
+      {/* SUBTITLE */}
+      <p 
+        className="
+          mt-4 
+          text-center 
+          text-beige/90 
+          text-[4vw]      /* mobile */
+          sm:text-xl 
+          md:text-2xl 
+          font-light
+        "
+      >
         Informasi Hewan Dalam Genggaman
       </p>
 
-      <div className="mt-20 flex gap-5">
+      {/* LOADING DOTS */}
+      <div className="mt-16 flex gap-5">
         {[0, 1, 2].map(i => (
-          <div key={i} className="w-6 h-6 bg-beige rounded-full animate-bounce" style={{ animationDelay: `${i * 0.2}s` }} />
+          <div 
+            key={i}
+            className="w-4 h-4 sm:w-6 sm:h-6 bg-beige rounded-full animate-bounce"
+            style={{ animationDelay: `${i * 0.2}s` }}
+          />
         ))}
       </div>
     </div>
