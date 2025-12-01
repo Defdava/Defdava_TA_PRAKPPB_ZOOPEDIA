@@ -1,263 +1,237 @@
-// src/pages/Profile.jsx
+// src/pages/Profile.jsx → KAMERA MIRROR (SELFIE MODE)
 import { useState, useRef, useEffect } from 'react'
-import { Camera, Upload, X, User, Star } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Auth from '../lib/Auth'
 
 export default function Profile() {
-  const user = Auth.getUser() || {}
-  const [name, setName] = useState(user.name || '')
-  const [email, setEmail] = useState(user.email || '')
-  const [photo, setPhoto] = useState(user.photo || user.avatar || '')
+  const navigate = useNavigate()
+  const [user, setUser] = useState(null)
+  const [name, setName] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
 
   const fileInputRef = useRef(null)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
-  // Load foto dari localStorage saat pertama buka
   useEffect(() => {
-    if (user.photo) setPhoto(user.photo)
-  }, [user.photo])
+    const load = () => {
+      const u = Auth.getUser()
+      setUser(u)
+      setName(u?.name || '')
+    }
+    load()
+    Auth.subscribe(load)
+    return () => Auth.unsubscribe(load)
+  }, [])
 
-  // Cari ulasan dari user ini
-  const allReviews = JSON.parse(localStorage.getItem('websiteReviews') || '[]')
-  const userReview = allReviews.find(r => 
-    (user.id && r.userId === user.id) || 
-    (!user.id && r.userId === user.email)
-  )
-
-  // Buka galeri
-  const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  // Upload dari galeri
-  const handleFileChange = (e) => {
+  const handleUpload = async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const dataUrl = reader.result
-        setPhoto(dataUrl)
-        Auth.updateProfile({ photo: dataUrl })
-        alert('Foto profil berhasil diubah!')
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) return alert('Maksimal 5MB!')
+    if (!file.type.startsWith('image/')) return alert('Harus gambar!')
+
+    setIsUploading(true)
+    const reader = new FileReader()
+    reader.onloadend = async () => {
+      await Auth.updateProfile({ avatar: reader.result })
+      setUser(Auth.getUser())
+      setIsUploading(false)
+      alert('Foto profil berhasil diubah!')
     }
+    reader.readAsDataURL(file)
   }
 
-  // Buka kamera
+  const saveName = async () => {
+    if (!name.trim() || name.trim().length < 3) return alert('Nama minimal 3 karakter!')
+    setIsSaving(true)
+    await Auth.updateProfile({ name: name.trim() })
+    setUser(Auth.getUser())
+    setIsSaving(false)
+    alert('Nama berhasil diperbarui!')
+  }
+
   const openCamera = async () => {
-    setIsCameraOpen(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: 1280,
+          height: 1280
+        }
+      })
+
+      setIsCameraOpen(true)
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play()
+
+          // Kamera MIRROR (SELFIE STYLE)
+          videoRef.current.style.transform = "scaleX(-1)"
+        }
+      }, 100)
     } catch (err) {
-      alert('Gak bisa buka kamera. Pastikan kamu izinin akses kamera ya!')
+      alert('Tidak bisa mengakses kamera!')
     }
   }
 
-  // Ambil foto dari kamera
-  const takePhoto = () => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (video && canvas) {
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      canvas.getContext('2d').drawImage(video, 0, 0)
-      const dataUrl = canvas.toDataURL('image/png')
-      setPhoto(dataUrl)
-      Auth.updateProfile({ photo: dataUrl })
-      alert('Foto dari kamera berhasil disimpan!')
-      closeCamera()
-    }
-  }
-
-  // Tutup kamera
   const closeCamera = () => {
     if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop())
     }
     setIsCameraOpen(false)
   }
 
-  // Simpan nama & email
-  const handleSave = () => {
-    Auth.updateProfile({ name, email })
-    alert('Profil berhasil diperbarui!')
+  const takePhoto = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const size = 512
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')
+
+    const sourceSize = Math.min(video.videoWidth, video.videoHeight)
+    const sx = (video.videoWidth - sourceSize) / 2
+    const sy = (video.videoHeight - sourceSize) / 2
+
+    // Hasil foto TIDAK mirror → balik lagi
+    ctx.translate(size, 0)
+    ctx.scale(-1, 1)
+
+    ctx.drawImage(video, sx, sy, sourceSize, sourceSize, 0, 0, size, size)
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+    ctx.globalCompositeOperation = 'destination-in'
+    ctx.beginPath()
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+    ctx.fill()
+
+    const photoUrl = canvas.toDataURL('image/png', 0.95)
+    Auth.updateProfile({ avatar: photoUrl }).then(() => {
+      setUser(Auth.getUser())
+      closeCamera()
+      alert('Foto profil berhasil diambil!')
+    })
   }
 
-  // Logout
-  const handleLogout = () => {
-    if (confirm('Yakin mau keluar?')) {
-      Auth.logout()
-      window.location.href = '/login'
-    }
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <Loader2 className="animate-spin text-dark-red" size={80} />
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen pt-24 px-6 pb-32 bg-cream">
-      <h1 className="text-4xl font-black text-center text-dark-red mb-10">Profil Saya</h1>
+      <h1 className="text-4xl font-black text-center text-dark-red mb-10 tracking-tight">Profil Saya</h1>
 
       <div className="max-w-2xl mx-auto">
-
-        {/* FOTO PROFIL BESAR */}
-        <div className="flex flex-col items-center mb-10">
+        <div className="flex flex-col items-center mb-12">
           <div className="relative group">
-            <div className="w-48 h-48 rounded-full overflow-hidden border-8 border-dark-red shadow-2xl bg-white">
-              {photo ? (
-                <img src={photo} alt="Profil" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center">
-                  <User size={80} className="text-cream" />
+            <div className="w-48 h-48 rounded-full overflow-hidden border-10 border-dark-red shadow-2xl ring-8 ring-cream/50">
+              {isUploading ? (
+                <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-700 flex items-center justify-center">
+                  <Loader2 size={70} className="text-cream animate-spin" />
                 </div>
+              ) : (
+                <img src={user.avatar} alt="Profil" className="w-full h-full object-cover" />
               )}
             </div>
 
-            {/* Tombol Ganti Foto */}
-            <div className="absolute bottom-2 right-2 flex gap-3">
-              <button
-                onClick={handleUploadClick}
-                className="p-4 bg-dark-red text-cream rounded-full shadow-xl hover:scale-110 transition-all"
-                title="Upload dari galeri"
-              >
-                <Upload size={28} />
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-4">
+              <button onClick={() => fileInputRef.current?.click()} className="p-5 bg-dark-red text-cream rounded-full shadow-2xl hover:scale-110 transition-all">
+                <Upload size={32} />
               </button>
-              <button
-                onClick={openCamera}
-                className="p-4 bg-orange-600 text-cream rounded-full shadow-xl hover:scale-110 transition-all"
-                title="Ambil foto langsung"
-              >
-                <Camera size={28} />
+              <button onClick={openCamera} className="p-5 bg-gradient-to-br from-orange-500 to-red-600 text-cream rounded-full shadow-2xl hover:scale-110 transition-all">
+                <Camera size={32} />
               </button>
             </div>
           </div>
 
-          <p className="mt-6 text-xl font-bold text-dark-red">Hai, {name || 'Pengunjung'}!</p>
-        </div>
-
-        {/* Form Edit Profil */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 space-y-6">
-          <div>
-            <label className="block text-dark-red font-bold mb-2">Nama</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-6 py-4 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-lg"
-              placeholder="Masukkan nama kamu"
-            />
-          </div>
-
-          <div>
-            <label className="block text-dark-red font-bold mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-6 py-4 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-lg"
-              placeholder="email@contoh.com"
-            />
-          </div>
-
-          <button
-            onClick={handleSave}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-700 text-cream font-black py-5 rounded-xl shadow-xl hover:scale-105 transition-all text-xl"
-          >
-            Simpan Perubahan
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="w-full bg-beige text-dark-red font-black py-5 rounded-xl shadow-xl hover:bg-light-beige transition-all text-xl"
-          >
-            Keluar Akun
-          </button>
-        </div>
-
-        {/* Ulasan yang pernah dibuat user */}
-        <div className="mt-12 bg-white rounded-3xl shadow-2xl p-8">
-          <h3 className="text-2xl font-black text-dark-red mb-6">Ulasanmu untuk Zoopedia</h3>
-          
-          {userReview ? (
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-8 border-4 border-purple-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex gap-1">
-                  {[1,2,3,4,5].map((s) => (
-                    <Star key={s} size={28} className={s <= userReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} />
-                  ))}
-                </div>
-                <span className="text-sm font-medium text-gray-600">• {userReview.date}</span>
-              </div>
-              <p className="text-xl text-gray-800 italic leading-relaxed">"{userReview.review}"</p>
-              <Link
-                to="/review"
-                className="mt-6 inline-block text-dark-red font-bold text-lg hover:underline"
-              >
-                Edit Ulasan →
-              </Link>
-            </div>
-          ) : (
-            <div className="text-center py-10">
-              <Star size={64} className="mx-auto text-gray-300 mb-6" />
-              <p className="text-xl text-gray-600 mb-6">Kamu belum memberikan ulasan untuk Zoopedia</p>
-              <Link
-                to="/review"
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-5 rounded-2xl font-bold text-xl shadow-xl hover:scale-105 transition-all"
-              >
-                <Star size={32} className="fill-yellow-300 text-yellow-300" />
-                Tulis Ulasan Sekarang
-              </Link>
+          <p className="mt-10 text-3xl font-black text-dark-red">Hai, {user.name}!</p>
+          {user.role === 'admin' && (
+            <div className="mt-3 px-8 py-3 bg-yellow-400 text-black rounded-full font-bold text-lg shadow-lg animate-pulse">
+              ADMIN ZOOPEDIA
             </div>
           )}
         </div>
+
+        <div className="bg-white rounded-3xl shadow-2xl p-8 space-y-8 border-4 border-beige">
+          <div>
+            <label className="block text-dark-red font-black text-xl mb-3">Nama Lengkap</label>
+            <input value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-5 rounded-2xl border-4 border-beige focus:border-dark-red outline-none text-lg font-medium" />
+          </div>
+          <div>
+            <label className="block text-dark-red font-black text-xl mb-3">Email</label>
+            <input value={user.email} disabled className="w-full px-6 py-5 rounded-2xl border-4 border-beige bg-gray-50 text-gray-600 text-lg" />
+          </div>
+          <button onClick={saveName} disabled={isSaving} className="w-full bg-gradient-to-r from-emerald-600 to-green-700 text-cream font-black py-6 rounded-2xl text-xl shadow-xl hover:scale-105 transition-all disabled:opacity-60">
+            {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </button>
+          <button onClick={() => confirm('Yakin keluar?') && Auth.logout().then(() => navigate('/login'))} className="w-full bg-beige text-dark-red font-black py-6 rounded-2xl text-xl shadow-xl hover:bg-light-beige transition-all">
+            Keluar Akun
+          </button>
+        </div>
       </div>
 
-      {/* INPUT HIDDEN UNTUK UPLOAD */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+      <canvas ref={canvasRef} className="hidden" />
 
-      {/* MODAL KAMERA */}
       {isCameraOpen && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-6">
-          <div className="relative bg-white rounded-3xl overflow-hidden shadow-3xl">
-            <button
-              onClick={closeCamera}
-              className="absolute top-4 right-4 z-10 p-3 bg-dark-red text-cream rounded-full shadow-xl hover:scale-110 transition"
-            >
-              <X size={28} />
-            </button>
+        <div className="fixed inset-0 bg-black z-[9999] flex items-center justify-center p-6">
+          <div className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-3xl">
 
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full max-w-lg rounded-t-3xl"
-            />
-
-            <div className="p-6 bg-gradient-to-r from-dark-red to-red-800">
-              <button
-                onClick={takePhoto}
-                className="w-full py-6 bg-cream text-dark-red font-black text-2xl rounded-full shadow-2xl hover:scale-110 transition-all flex items-center justify-center gap-4"
-              >
-                <Camera size={40} />
-                Ambil Foto
+            <div className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-5 bg-gradient-to-b from-black/70 to-transparent">
+              <h3 className="text-2xl font-black text-cream tracking-wider">Ambil Foto Profil</h3>
+              <button onClick={closeCamera} className="p-3 bg-dark-red/90 text-cream rounded-full shadow-xl hover:scale-110 transition-all backdrop-blur-sm">
+                <X size={28} />
               </button>
             </div>
+
+            {/* VIDEO LIVE — MIRROR (SELFIE STYLE) */}
+            <div className="relative aspect-square bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{ transform: 'scaleX(-1)' }}
+              />
+
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-72 h-72 rounded-full border-8 border-cream/80 shadow-2xl"></div>
+              </div>
+
+              <div className="absolute top-6 left-6 flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-600 rounded-full animate-pulse"></div>
+                <span className="text-cream font-bold text-sm tracking-wider">LIVE</span>
+              </div>
+            </div>
+
+            <div className="p-8 bg-gradient-to-t from-dark-red via-red-700 to-red-800">
+              <button onClick={takePhoto} className="relative w-full flex justify-center">
+                <div className="relative">
+                  <div className="absolute inset-0 w-24 h-24 rounded-full bg-cream/30 blur-xl animate-pulse"></div>
+                  <div className="relative w-24 h-24 rounded-full bg-cream shadow-2xl flex items-center justify-center hover:scale-110 transition-all active:scale-95">
+                    <div className="w-20 h-20 rounded-full bg-white border-8 border-dark-red"></div>
+                  </div>
+                </div>
+              </button>
+              <p className="text-center text-cream font-bold text-lg mt-6 tracking-wider">
+                Tekan untuk ambil foto
+              </p>
+            </div>
+
           </div>
         </div>
       )}
-
-      {/* Canvas tersembunyi untuk ambil foto */}
-      <canvas ref={canvasRef} className="hidden" />
     </div>
   )
 }

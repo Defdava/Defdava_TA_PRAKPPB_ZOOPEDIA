@@ -1,12 +1,11 @@
-// src/App.jsx → FINAL VERSION DENGAN ROLE ADMIN + UPLOAD HEWAN
+// src/App.jsx
 import { useState, useEffect } from 'react'
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-  useSearchParams
+import { 
+  BrowserRouter, 
+  Routes, 
+  Route, 
+  Navigate, 
+  useLocation 
 } from 'react-router-dom'
 import Auth from './lib/Auth'
 import BottomNav from './components/BottomNav'
@@ -22,132 +21,100 @@ import DetailAnimal from './pages/DetailAnimal'
 import Education from './pages/Education'
 import Favorites from './pages/Favorites'
 import Profile from './pages/Profile'
+import UploadAnimal from './pages/UploadAnimal'
 import Quiz from './pages/Quiz'
 import ReviewPage from './pages/ReviewPage'
 
-// ADMIN PAGE
-import UploadAnimal from './pages/UploadAnimal'
-
 function AppContent() {
-  const [isAuth, setIsAuth] = useState(Auth.isAuthenticated())
   const [showSplash, setShowSplash] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(null)
   const location = useLocation()
-  const [searchParams] = useSearchParams()
 
-  // Deteksi share link: ?share=animal-123
-  const sharedAnimalId = searchParams.get('share')?.replace('animal-', '')
-
-  // Simpan halaman terakhir sebelum logout
-  useEffect(() => {
-    if (isAuth && !['/login', '/register', '/'].includes(location.pathname)) {
-      const path = location.pathname + location.search
-      sessionStorage.setItem('lastPath', path)
-    }
-  }, [location, isAuth])
-
-  // Splash screen 3 detik
+  // 1. Splash 3 detik
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000)
     return () => clearTimeout(timer)
   }, [])
 
-  // Update status login secara real-time
+  // 2. Cek status login sekali saat app mulai
   useEffect(() => {
-    const update = () => setIsAuth(Auth.isAuthenticated())
-    Auth.subscribe(update)
-    return () => Auth.unsubscribe(update)
+    const check = async () => {
+      await Auth.init?.()
+      setIsAuthenticated(Auth.isAuthenticated())
+    }
+    check()
   }, [])
 
+  // 3. Simpan halaman terakhir (kecuali login/register)
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      const path = location.pathname + location.search
+      if (!['/login', '/register'].includes(location.pathname)) {
+        sessionStorage.setItem('lastPageBeforeRefresh', path)
+      }
+    }
+  }, [location, isAuthenticated])
+
+  // 4. Dengarkan perubahan login/logout
+  useEffect(() => {
+    const handler = () => setIsAuthenticated(Auth.isAuthenticated())
+    Auth.subscribe?.(handler)
+    return () => Auth.unsubscribe?.(handler)
+  }, [])
+
+  // Splash
   if (showSplash) return <Splash />
 
-  // Tentukan halaman tujuan setelah login
-  const getRedirectPath = () => {
-    if (sharedAnimalId && !isNaN(sharedAnimalId)) {
-      return `/animals/${sharedAnimalId}`
-    }
-    const lastPath = sessionStorage.getItem('lastPath')
-    if (lastPath && lastPath.startsWith('/animals/')) return lastPath
-    return '/dashboard'
+  // Loading auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-8 border-beige border-t-dark-red"></div>
+          <p className="text-dark-red font-bold text-xl mt-6">Memuat Zoopedia...</p>
+        </div>
+      </div>
+    )
   }
 
-  const redirectTo = getRedirectPath()
+  // Jika belum login → force login
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Routes>
+    )
+  }
+
+  // Jika sudah login → restore halaman terakhir untuk root
+  const lastPage = sessionStorage.getItem('lastPageBeforeRefresh') || '/*'
 
   return (
     <>
-      {isAuth && <HeaderNav />}
+      <HeaderNav />
 
-      <div className={`min-h-screen bg-cream ${isAuth ? 'pt-20 pb-32' : ''}`}>
+      <div className="min-h-screen bg-cream pt-20 pb-32">
         <Routes>
-          {/* Root */}
-          <Route
-            path="/"
-            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />}
-          />
+          {/* Root diarahkan ke lastPage */}
+          <Route path="/" element={<Navigate to={lastPage} replace />} />
 
-          {/* Auth Pages */}
-          <Route
-            path="/login"
-            element={isAuth ? <Navigate to={redirectTo} replace /> : <Login />}
-          />
-          <Route
-            path="/register"
-            element={isAuth ? <Navigate to={redirectTo} replace /> : <Register />}
-          />
+          {/* Semua halaman protected */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/animals" element={<Animals />} />
+          <Route path="/animals/:id" element={<DetailAnimal />} />
+          <Route path="/education" element={<Education />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/quiz" element={<Quiz />} />
+          <Route path="/review" element={<ReviewPage />} />
+          <Route path="/upload-animal" element={<UploadAnimal />} />
 
-          {/* Protected Pages (User & Admin) */}
-          <Route
-            path="/dashboard"
-            element={isAuth ? <Dashboard /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/animals"
-            element={isAuth ? <Animals /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/animals/:id"
-            element={isAuth ? <DetailAnimal /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/education"
-            element={isAuth ? <Education /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/favorites"
-            element={isAuth ? <Favorites /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/profile"
-            element={isAuth ? <Profile /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/quiz"
-            element={isAuth ? <Quiz /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/review"
-            element={isAuth ? <ReviewPage /> : <Navigate to="/login" replace />}
-          />
-
-          {/* ADMIN ONLY: Upload Hewan */}
-          <Route
-            path="/admin/upload"
-            element={
-              isAuth && Auth.isAdmin() ? (
-                <UploadAnimal />
-              ) : (
-                <Navigate to="/dashboard" replace />
-              )
-            }
-          />
-
-          {/* 404 / Fallback */}
-          <Route
-            path="*"
-            element={<Navigate to={isAuth ? redirectTo : "/login"} replace />}
-          />
+          {/* 404 → kembali ke lastPage */}
+          <Route path="*" element={<Navigate to={lastPage} replace />} />
         </Routes>
 
-        {isAuth && <BottomNav />}
+        <BottomNav />
       </div>
     </>
   )

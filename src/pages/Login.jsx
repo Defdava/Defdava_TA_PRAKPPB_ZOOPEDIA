@@ -2,39 +2,37 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Auth from '../lib/Auth'
-import { Cat } from 'lucide-react'
+import { Cat, Loader2 } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (!email.trim() || !password) return alert('Email dan password wajib diisi!')
+    if (!email || !password) return
 
-    const emailLower = email.trim().toLowerCase()
-    const allAccounts = JSON.parse(localStorage.getItem('zoopedia_accounts') || '[]')
-    const account = allAccounts.find(acc => acc.email === emailLower)
+    setLoading(true)
 
-    if (!account) return alert('Akun belum terdaftar!')
-    if (account.password !== password) return alert('Password salah!')
-
-    Auth.login({
-      name: account.name,
-      email: account.email,
-      avatar: account.avatar,
-      photo: null,
-      role: account.role || 'user'
-    })
-
-    alert(`Selamat datang kembali, ${account.name}! ${account.role === 'admin' ? '(Admin)' : ''}`)
-    navigate('/dashboard', { replace: true })
+    try {
+      await Auth.login(email, password)
+      // Langsung ke dashboard tanpa alert
+      navigate('/dashboard', { replace: true })
+    } catch (error) {
+      const message = error.message.includes('Invalid') 
+        ? 'Email atau password salah!' 
+        : error.message
+      alert(message)
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-dark-red to-beige flex items-center justify-center p-6">
       <div className="bg-cream p-10 rounded-3xl shadow-2xl w-full max-w-sm border-4 border-dark-red">
+
         <div className="flex justify-center mb-8">
           <div className="relative">
             <div className="absolute inset-0 bg-yellow-400/30 rounded-full blur-3xl animate-pulse"></div>
@@ -45,16 +43,46 @@ export default function Login() {
         <h1 className="text-4xl font-black text-center text-dark-red mb-8">Zoopedia</h1>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          <input type="email" placeholder="Email" className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <input type="password" placeholder="Password" className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner disabled:opacity-70"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+            className="w-full px-6 py-5 rounded-xl border-4 border-beige focus:border-dark-red outline-none text-dark-red font-bold text-lg shadow-inner disabled:opacity-70"
+          />
 
-          <button type="submit" className="w-full bg-gradient-to-r from-orange-600 to-red-700 text-cream font-black py-6 rounded-xl text-xl shadow-2xl hover:scale-105 transition-all">
-            Masuk Zoopedia
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 text-cream font-black py-6 rounded-xl text-xl shadow-2xl hover:scale-105 transition-all disabled:opacity-70 flex items-center justify-center gap-3"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={28} />
+                Sedang Masuk...
+              </>
+            ) : (
+              'Masuk Zoopedia'
+            )}
           </button>
         </form>
 
         <p className="text-center mt-8 text-beige font-medium">
-          Belum punya akun? <Link to="/register" className="text-dark-red font-black underline hover:text-red-800">Daftar di sini</Link>
+          Belum punya akun?{' '}
+          <Link to="/register" className="text-dark-red font-black underline hover:text-red-800">
+            Daftar di sini
+          </Link>
         </p>
       </div>
     </div>

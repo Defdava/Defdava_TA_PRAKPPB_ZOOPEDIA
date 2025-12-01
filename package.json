@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.86.0",
     "apexcharts": "^5.3.6",
     "chart.js": "^4.5.1",
     "lucide-react": "^0.454.0",
