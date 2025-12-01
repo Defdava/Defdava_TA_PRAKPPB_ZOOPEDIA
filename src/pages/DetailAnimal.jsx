@@ -1,4 +1,4 @@
-// src/pages/DetailAnimal.jsx — FINAL + SHARE + EDIT + DELETE (ADMIN ONLY)
+// src/pages/DetailAnimal.jsx — FINAL + SHARE + EDIT + DELETE + STATUS KONSERVASI
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAnimalById, updateAnimal, deleteAnimal } from "../services/api";
@@ -11,8 +11,22 @@ import {
   X,
   Globe,
   BookOpen,
-  Trash2
+  AlertTriangle,
+  Trash2,
 } from "lucide-react";
+
+const CONDITION_LABELS = {
+  "LC": "Least Concern (Tidak Terancam)",
+  "NT": "Near Threatened (Hampir Terancam)",
+  "VU": "Vulnerable (Rentan)",
+  "EN": "Endangered (Terancam Punah)",
+  "CR": "Critically Endangered (Kritis)",
+  "EW": "Extinct in the Wild (Punah di Alam)",
+  "EX": "Extinct (Punah Total)",
+
+  // Untuk data API lama yang isinya teks panjang
+  default: "Status Tidak Diketahui"
+};
 
 export default function DetailAnimal() {
   const { id } = useParams();
@@ -52,13 +66,14 @@ export default function DetailAnimal() {
   /* FITUR SHARE */
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/animals/${id}`;
-
     if (navigator.share) {
-      navigator.share({
-        title: animal.nama,
-        text: `Lihat info tentang ${animal.nama}`,
-        url: shareUrl,
-      }).catch(() => navigator.clipboard.writeText(shareUrl));
+      navigator
+        .share({
+          title: animal.nama,
+          text: `Lihat info tentang ${animal.nama}`,
+          url: shareUrl,
+        })
+        .catch(() => navigator.clipboard.writeText(shareUrl));
     } else {
       navigator.clipboard.writeText(shareUrl);
       alert("Link disalin!");
@@ -176,6 +191,37 @@ export default function DetailAnimal() {
       {/* INFORMASI */}
       <div className="max-w-4xl mx-auto px-6 space-y-8">
         
+        {/* STATUS KONSERVASI */}
+        <div className="bg-white rounded-3xl shadow-xl p-6 border-4 border-beige">
+          <h3 className="font-bold text-lg flex items-center gap-2 text-red-700">
+            <AlertTriangle size={20} /> Status Konservasi
+          </h3>
+
+          {isEditing ? (
+            <select
+              className="mt-3 w-full p-3 border-2 border-beige rounded-xl"
+              value={editData.condition}
+              onChange={(e) =>
+                setEditData({ ...editData, condition: e.target.value })
+              }
+            >
+              {Object.keys(CONDITION_LABELS)
+                .filter((k) => k !== "default")
+                .map((key) => (
+                  <option key={key} value={key}>
+                    {CONDITION_LABELS[key]}
+                  </option>
+                ))}
+            </select>
+          ) : (
+            <p className="mt-2 text-lg font-bold text-red-700">
+              {CONDITION_LABELS[animal.condition] ||
+                animal.condition ||
+                CONDITION_LABELS.default}
+            </p>
+          )}
+        </div>
+
         {/* HABITAT */}
         <div className="bg-white rounded-3xl shadow-xl p-6 border-4 border-beige">
           <h3 className="font-bold text-lg flex items-center gap-2">
@@ -220,11 +266,9 @@ export default function DetailAnimal() {
           )}
         </div>
 
-        {/* EDIT / DELETE BUTTONS (ADMIN) */}
+        {/* ADMIN BUTTONS */}
         {isAdmin && !isEditing && (
           <div className=" flex flex-col items-center gap-6 pt-4">
-            
-            {/* EDIT BUTTON */}
             <button
               onClick={() => setIsEditing(true)}
               className="bg-indigo-600 text-white px-10 py-4 rounded-full text-xl font-black shadow-xl hover:scale-105"
@@ -232,7 +276,6 @@ export default function DetailAnimal() {
               <Edit3 className="inline mr-2" /> Edit Hewan
             </button>
 
-            {/* DELETE BUTTON */}
             <button
               onClick={handleDelete}
               disabled={deleting}
@@ -244,7 +287,7 @@ export default function DetailAnimal() {
           </div>
         )}
 
-        {/* SIMPAN / BATAL */}
+        {/* SAVE / CANCEL */}
         {isEditing && (
           <div className="flex justify-center gap-6 pt-4">
             <button
