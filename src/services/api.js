@@ -35,14 +35,15 @@ export const getAllAnimals = async () => {
 };
 
 /* ===============================
-   GET HEWAN BY ID
+   GET HEWAN BY ID (LOCAL FIND)
 ================================ */
 export const getAnimalById = async (id) => {
   try {
-    const res = await fetch(`${API_URL}/${id}`);
+    const res = await fetch(API_URL);
     const data = await res.json();
 
-    return data ? mapAnimal(data) : null;
+    const hasil = data.find((item) => String(item.id) === String(id));
+    return hasil ? mapAnimal(hasil) : null;
   } catch (err) {
     console.error("Gagal memuat hewan:", err);
     throw new Error("Gagal memuat detail hewan.");
@@ -59,7 +60,7 @@ const requireAdmin = () => {
 };
 
 /* ===============================
-   CREATE HEWAN (POST)
+   CREATE HEWAN
 ================================ */
 export const createAnimal = async (payload) => {
   requireAdmin();
@@ -87,7 +88,7 @@ export const createAnimal = async (payload) => {
 };
 
 /* ===============================
-   UPDATE HEWAN (PUT /hewan/:id)
+   UPDATE HEWAN
 ================================ */
 export const updateAnimal = async (id, payload) => {
   requireAdmin();
@@ -115,7 +116,7 @@ export const updateAnimal = async (id, payload) => {
 };
 
 /* ===============================
-   DELETE HEWAN (DELETE /hewan/:id)
+   DELETE HEWAN
 ================================ */
 export const deleteAnimal = async (id) => {
   requireAdmin();
