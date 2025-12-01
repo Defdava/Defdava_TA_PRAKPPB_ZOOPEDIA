@@ -122,7 +122,9 @@ export const deleteAnimal = async (id) => {
   requireAdmin();
 
   const res = await fetch(`${API_URL}/${id}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}) // SERAGAM DENGAN UPDATE, meski body kosong
   });
 
   if (!res.ok) {
@@ -131,5 +133,8 @@ export const deleteAnimal = async (id) => {
   }
 
   window.dispatchEvent(new Event("animal-updated"));
+
+  // API biasanya return message, tapi kita kembalikan true saja
   return true;
 };
+
