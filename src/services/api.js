@@ -35,7 +35,9 @@ export const getAllAnimals = async () => {
 };
 
 /* ===============================
-   GET HEWAN BY ID (LOCAL FIND)
+   GET HEWAN BY ID
+   (kalau backend belum punya GET /hewan/:id,
+    kita tetap pakai fetch semua lalu find)
 ================================ */
 export const getAnimalById = async (id) => {
   try {
@@ -60,7 +62,7 @@ const requireAdmin = () => {
 };
 
 /* ===============================
-   CREATE HEWAN
+   CREATE HEWAN (POST /hewan)
 ================================ */
 export const createAnimal = async (payload) => {
   requireAdmin();
@@ -79,7 +81,7 @@ export const createAnimal = async (payload) => {
   });
 
   if (!res.ok) {
-    console.error(await res.text());
+    console.error("Create error:", await res.text());
     throw new Error("Gagal mengunggah hewan.");
   }
 
@@ -88,15 +90,17 @@ export const createAnimal = async (payload) => {
 };
 
 /* ===============================
-   UPDATE HEWAN
+   UPDATE HEWAN (PUT /hewan)
+   (id dikirim di body, masih pakai endpoint base)
 ================================ */
 export const updateAnimal = async (id, payload) => {
   requireAdmin();
 
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(API_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      id, // penting: kirim id di body
       name: payload.name,
       condition: payload.condition,
       origin: payload.origin,
@@ -106,35 +110,45 @@ export const updateAnimal = async (id, payload) => {
     })
   });
 
+  const text = await res.text();
+
   if (!res.ok) {
-    console.error(await res.text());
+    console.error("Update error:", res.status, text);
     throw new Error("Gagal memperbarui hewan.");
   }
 
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    // kalau backend cuma balikin pesan, bukan objek hewan penuh
+    window.dispatchEvent(new Event("animal-updated"));
+    return { ...payload, id }; 
+  }
+
   window.dispatchEvent(new Event("animal-updated"));
-  return mapAnimal(await res.json());
+  return mapAnimal(json);
 };
 
 /* ===============================
-   DELETE HEWAN
+   DELETE HEWAN (DELETE /hewan)
+   id DIKIRIM DI BODY (sesuai endpoint base)
 ================================ */
 export const deleteAnimal = async (id) => {
   requireAdmin();
 
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(API_URL, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}) // SERAGAM DENGAN UPDATE, meski body kosong
+    body: JSON.stringify({ id })  // ⬅️ INI PENTING
   });
 
+  const text = await res.text();
   if (!res.ok) {
-    console.error(await res.text());
+    console.error("Delete error:", res.status, text);
     throw new Error("Gagal menghapus hewan.");
   }
 
   window.dispatchEvent(new Event("animal-updated"));
-
-  // API biasanya return message, tapi kita kembalikan true saja
   return true;
 };
-
