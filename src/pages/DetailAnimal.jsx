@@ -113,7 +113,7 @@ export default function DetailAnimal() {
       setAnimal(updatedAnimal)
       setIsEditing(false)
       alert('Hewan berhasil diperbarui!')
-      // event 'animal-updated' sudah dipanggil di api.js
+      // event 'animal-updated' dipanggil di api.js, jadi list hewan ikut refresh
     } catch (err) {
       console.error(err)
       alert('Gagal menyimpan: ' + (err.message || 'Periksa koneksi / RLS Supabase'))
