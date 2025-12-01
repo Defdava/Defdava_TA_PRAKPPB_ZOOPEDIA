@@ -93,7 +93,7 @@ export const createAnimal = async (payload) => {
 export const updateAnimal = async (id, payload) => {
   requireAdmin();
 
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/update/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -116,17 +116,18 @@ export const updateAnimal = async (id, payload) => {
 };
 
 /* ===============================
-   DELETE HEWAN
+   DELETE HEWAN (API VERCEL FIX)
 ================================ */
 export const deleteAnimal = async (id) => {
   requireAdmin();
 
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/delete/${id}`, {
     method: "DELETE"
   });
 
   if (!res.ok) {
-    console.error(await res.text());
+    const msg = await res.text();
+    console.error("Delete Error:", msg);
     throw new Error("Gagal menghapus hewan.");
   }
 
