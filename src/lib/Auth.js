@@ -1,7 +1,7 @@
-// src/lib/Auth.js → FINAL + AVATAR ACAK + ADMIN CHECK
+// src/lib/Auth.js → FINAL + AVATAR + HISTORY QUIZ
 import { supabase } from './supabaseClient'
 
-// Generate avatar cantik & unik berdasarkan email
+// Generate avatar cantik & unik
 const generateAvatar = (email = 'user') => {
   const seed = email.trim().toLowerCase()
   const styles = ['adventurer', 'bottts', 'croodles', 'identicon', 'micah', 'open-peeps', 'personas', 'pixel-art']
@@ -46,7 +46,6 @@ class AuthManager {
       .eq('id', authUser.id)
       .single()
 
-    // Kalau profil belum ada → buat baru + avatar acak
     if (!profile || error?.code === 'PGRST116') {
       const avatar = generateAvatar(authUser.email)
       const { data: newProfile } = await supabase
@@ -63,7 +62,6 @@ class AuthManager {
       profile = newProfile
     }
 
-    // Kalau avatar kosong → kasih acak
     if (!profile.avatar) {
       profile.avatar = generateAvatar(authUser.email)
       await supabase.from('profiles').update({ avatar: profile.avatar }).eq('id', authUser.id)
@@ -84,6 +82,31 @@ class AuthManager {
       .select('animal_id')
       .eq('user_id', this.user.id)
     this.favorites = data ? data.map(f => f.animal_id) : []
+  }
+
+  // === FUNGSI BARU: Simpan hasil kuis ===
+  async saveQuizResult(score, total) {
+    if (!this.user) return
+    const percentage = Math.round((score / total) * 100)
+    await supabase
+      .from('quiz_history')
+      .insert({
+        user_id: this.user.id,
+        score,
+        total,
+        percentage
+      })
+  }
+
+  // === Ambil riwayat kuis ===
+  async getQuizHistory() {
+    if (!this.user) return []
+    const { data, error } = await supabase
+      .from('quiz_history')
+      .select('*')
+      .eq('user_id', this.user.id)
+      .order('created_at', { ascending: false })
+    return error ? [] : data
   }
 
   async login(email, password) {
@@ -126,7 +149,6 @@ class AuthManager {
 
   async updateProfile(updates) {
     if (!this.user) return { error: 'Not logged in' }
-
     if ('avatar' in updates && !updates.avatar) {
       updates.avatar = generateAvatar(this.user.email)
     }
