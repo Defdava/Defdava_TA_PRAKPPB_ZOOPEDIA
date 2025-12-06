@@ -36,8 +36,6 @@ export const getAllAnimals = async () => {
 
 /* ===============================
    GET HEWAN BY ID
-   (kalau backend belum punya GET /hewan/:id,
-    kita tetap pakai fetch semua lalu find)
 ================================ */
 export const getAnimalById = async (id) => {
   try {
@@ -52,9 +50,9 @@ export const getAnimalById = async (id) => {
   }
 };
 
-/* ===================================================
+/* ===============================
    ADMIN CHECK
-=================================================== */
+================================ */
 const requireAdmin = () => {
   if (!Auth.isAdmin()) {
     throw new Error("Akses ditolak. Hanya admin.");
@@ -90,17 +88,15 @@ export const createAnimal = async (payload) => {
 };
 
 /* ===============================
-   UPDATE HEWAN (PUT /hewan)
-   (id dikirim di body, masih pakai endpoint base)
+   UPDATE HEWAN (PUT /hewan/:id)
 ================================ */
 export const updateAnimal = async (id, payload) => {
   requireAdmin();
 
-  const res = await fetch(API_URL, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      id, // penting: kirim id di body
       name: payload.name,
       condition: payload.condition,
       origin: payload.origin,
@@ -110,28 +106,18 @@ export const updateAnimal = async (id, payload) => {
     })
   });
 
-  const text = await res.text();
-
   if (!res.ok) {
-    console.error("Update error:", res.status, text);
-    throw new Error("Gagal memperbarui hewan.");
-  }
-
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    // kalau backend cuma balikin pesan, bukan objek hewan penuh
-    window.dispatchEvent(new Event("animal-updated"));
-    return { ...payload, id }; 
+    const text = await res.text();
+    console.error("Update error:", text);
+    throw new Error("Gagal mengedit hewan.");
   }
 
   window.dispatchEvent(new Event("animal-updated"));
-  return mapAnimal(json);
+  return mapAnimal(await res.json());
 };
 
 /* ===============================
-   DELETE HEWAN (RESTFUL)
+   DELETE HEWAN (DELETE /hewan/:id)
 ================================ */
 export const deleteAnimal = async (id) => {
   requireAdmin();
@@ -149,4 +135,3 @@ export const deleteAnimal = async (id) => {
   window.dispatchEvent(new Event("animal-updated"));
   return true;
 };
-
