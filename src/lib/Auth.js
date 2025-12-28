@@ -1,7 +1,7 @@
-// src/lib/Auth.js → FINAL + AVATAR + HISTORY QUIZ
+// src/lib/Auth.js
 import { supabase } from './supabaseClient'
 
-// Generate avatar cantik & unik
+// Generate avatar unik menggunakan DiceBear
 const generateAvatar = (email = 'user') => {
   const seed = email.trim().toLowerCase()
   const styles = ['adventurer', 'bottts', 'croodles', 'identicon', 'micah', 'open-peeps', 'personas', 'pixel-art']
@@ -14,15 +14,19 @@ class AuthManager {
   constructor() {
     this.user = null
     this.profile = null
-    this.favorites = []
+    this.favorites = []           // array of string UUID
     this.listeners = []
     this._initialized = false
-    this._init()
   }
 
-  async _init() {
+  async init() {
+    if (this._initialized) return
+    this._initialized = true
+
     const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) await this._loadUserData(session.user)
+    if (session?.user) {
+      await this._loadUserData(session.user)
+    }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
@@ -34,21 +38,20 @@ class AuthManager {
         this._notify()
       }
     })
-
-    this._initialized = true
   }
 
   async _loadUserData(authUser) {
     this.user = authUser
+
     let { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
       .single()
 
-    if (!profile || error?.code === 'PGRST116') {
+    if (error || !profile) {
       const avatar = generateAvatar(authUser.email)
-      const { data: newProfile } = await supabase
+      const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
         .insert({
           id: authUser.id,
@@ -59,6 +62,8 @@ class AuthManager {
         })
         .select()
         .single()
+
+      if (insertError) throw insertError
       profile = newProfile
     }
 
@@ -77,37 +82,97 @@ class AuthManager {
       this.favorites = []
       return
     }
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from('favorites')
       .select('animal_id')
       .eq('user_id', this.user.id)
-    this.favorites = data ? data.map(f => f.animal_id) : []
+
+    if (error) {
+      console.error('Gagal memuat favorit:', error.message)
+      this.favorites = []
+    } else {
+      this.favorites = data?.map(row => row.animal_id) || []
+    }
   }
 
-  // === FUNGSI BARU: Simpan hasil kuis ===
-  async saveQuizResult(score, total) {
-    if (!this.user) return
-    const percentage = Math.round((score / total) * 100)
-    await supabase
-      .from('quiz_history')
-      .insert({
-        user_id: this.user.id,
-        score,
-        total,
-        percentage
+  /**
+   * Toggle status favorit hewan (tambah / hapus)
+   * @param {string} animalId - Harus berupa string UUID
+   * @returns {Promise<boolean>} true = sekarang favorit, false = dihapus
+   */
+  async toggleFavorite(animalId) {
+    if (!this.user) {
+      throw new Error('Silakan login terlebih dahulu untuk menyimpan favorit')
+    }
+
+    // Validasi tipe data
+    if (typeof animalId !== 'string' || !animalId.includes('-')) {
+      console.error('animalId tidak valid (harus UUID string):', animalId)
+      throw new Error('ID hewan tidak valid. Harus berupa UUID (contoh: 123e4567-e89b-12d3-a456-426614174000)')
+    }
+
+    console.log('toggleFavorite dipanggil:', {
+      animalId,
+      isAlreadyFavorite: this.favorites.includes(animalId),
+      userId: this.user.id
+    })
+
+    try {
+      const isCurrentlyFavorite = this.favorites.includes(animalId)
+
+      if (isCurrentlyFavorite) {
+        // Hapus dari favorit
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', this.user.id)
+          .eq('animal_id', animalId)
+
+        if (error) throw error
+
+        this.favorites = this.favorites.filter(id => id !== animalId)
+      } else {
+        // Tambah ke favorit
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: this.user.id,
+            animal_id: animalId
+          })
+
+        if (error) throw error
+
+        this.favorites.push(animalId)
+      }
+
+      this._notify()
+      return !isCurrentlyFavorite
+    } catch (err) {
+      console.error('ERROR toggle favorite:', {
+        message: err.message,
+        code: err.code,
+        details: err.details,
+        hint: err.hint,
+        animalId,
+        status: err.status
       })
+
+      if (err.code === '23505') { // duplicate key violation
+        throw new Error('Hewan ini sudah ada di favorit')
+      }
+
+      if (err.message?.includes('invalid input syntax')) {
+        throw new Error('Tipe data animal_id di database tidak sesuai. Harus bertipe uuid.')
+      }
+
+      throw new Error('Gagal menyimpan favorit. Silakan coba lagi atau periksa koneksi.')
+    }
   }
 
-  // === Ambil riwayat kuis ===
-  async getQuizHistory() {
-    if (!this.user) return []
-    const { data, error } = await supabase
-      .from('quiz_history')
-      .select('*')
-      .eq('user_id', this.user.id)
-      .order('created_at', { ascending: false })
-    return error ? [] : data
-  }
+  // ────────────────────────────────────────────────────────────────
+  // Method autentikasi lainnya (tetap sama)
+  // ────────────────────────────────────────────────────────────────
 
   async login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -135,8 +200,13 @@ class AuthManager {
     this._notify()
   }
 
-  isAuthenticated() { return !!this.user }
-  isAdmin() { return this.profile?.role === 'admin' }
+  isAuthenticated() {
+    return !!this.user
+  }
+
+  isAdmin() {
+    return this.profile?.role === 'admin'
+  }
 
   getUser() {
     if (!this.profile) return null
@@ -147,47 +217,29 @@ class AuthManager {
     }
   }
 
-  async updateProfile(updates) {
-    if (!this.user) return { error: 'Not logged in' }
-    if ('avatar' in updates && !updates.avatar) {
-      updates.avatar = generateAvatar(this.user.email)
-    }
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', this.user.id)
-      .select()
-      .single()
-
-    if (!error) {
-      this.profile = data
-      this._notify()
-    }
-    return { data, error }
-  }
-
-  async toggleFavorite(animalId) {
-    if (!this.user) return this.favorites
-    const isFav = this.favorites.includes(animalId)
-    if (isFav) {
-      await supabase.from('favorites').delete().eq('user_id', this.user.id).eq('animal_id', animalId)
-      this.favorites = this.favorites.filter(id => id !== animalId)
-    } else {
-      await supabase.from('favorites').insert({ user_id: this.user.id, animal_id: animalId })
-      this.favorites.push(animalId)
-    }
-    this._notify()
+  getFavorites() {
     return [...this.favorites]
   }
 
-  getFavorites() { return [...this.favorites] }
-  isFavorite(id) { return this.favorites.includes(id) }
+  isFavorite(id) {
+    return this.favorites.includes(id)
+  }
 
-  subscribe(cb) { this.listeners.push(cb) }
-  unsubscribe(cb) { this.listeners = this.listeners.filter(l => l !== cb) }
-  _notify() { this.listeners.forEach(cb => cb()) }
+  subscribe(callback) {
+    this.listeners.push(callback)
+  }
+
+  unsubscribe(callback) {
+    this.listeners = this.listeners.filter(cb => cb !== callback)
+  }
+
+  _notify() {
+    this.listeners.forEach(cb => cb(this))
+  }
 }
 
+// Singleton
 const Auth = new AuthManager()
+Auth.init().catch(console.error)
+
 export default Auth
